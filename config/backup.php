@@ -4,19 +4,6 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Target database
-    |--------------------------------------------------------------------------
-    |
-    | The driver of the project database being backed up (mysql|mariadb|pgsql).
-    | Used by the DriverFactory to pick the right DatabaseDriver implementation;
-    | the connections themselves are configured in config/database.php.
-    |
-    */
-
-    'driver' => env('DB_CONNECTION', 'mysql'),
-
-    /*
-    |--------------------------------------------------------------------------
     | Storage defaults
     |--------------------------------------------------------------------------
     |

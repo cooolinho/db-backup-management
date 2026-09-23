@@ -13,8 +13,8 @@ it('maps DB_CONNECTION values to the matching driver', function (string $connect
     ['pgsql', PostgresDriver::class],
 ]);
 
-it('falls back to config(backup.driver) when no driver is given', function () {
-    config(['backup.driver' => 'pgsql']);
+it('falls back to the target connection\'s configured driver when none is given', function () {
+    config(['database.connections.target.driver' => 'pgsql']);
 
     expect((new DriverFactory())->make())->toBeInstanceOf(PostgresDriver::class);
 });
