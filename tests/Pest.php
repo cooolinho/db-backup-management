@@ -20,3 +20,21 @@ pest()->extend(TestCase::class)
 
 pest()->extend(TestCase::class)
     ->in('Unit');
+
+/*
+|--------------------------------------------------------------------------
+| Integration tests
+|--------------------------------------------------------------------------
+|
+| Talk to real database servers via docker/entrypoint-installed clients
+| (mariadb-dump/mariadb, pg_dump/psql). Tagged so the default test run
+| (composer test / php artisan test) excludes them via --exclude-group;
+| run them explicitly against the docker-compose.dev.yml fixtures with:
+|
+|   docker compose -f docker-compose.dev.yml up -d mysql mariadb postgres
+|   php artisan test --group=integration
+|
+*/
+pest()->extend(TestCase::class)
+    ->in('Integration')
+    ->group('integration');

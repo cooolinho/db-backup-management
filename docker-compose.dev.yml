@@ -48,13 +48,19 @@ services:
     image: postgres:18
     restart: unless-stopped
     environment:
+      # POSTGRES_USER left as the default "postgres" superuser (our
+      # DB_ROOT_USERNAME): setting it to anything else replaces the
+      # superuser entirely instead of adding a second, separate role. The
+      # actual app role (DB_USERNAME) is created by the initdb script below.
       POSTGRES_DB: app
-      POSTGRES_USER: app
-      POSTGRES_PASSWORD: secret
+      POSTGRES_PASSWORD: root
     ports:
       - "15432:5432"
     volumes:
-      - dev-postgres:/var/lib/postgresql/data
+      # Postgres 18 changed the expected layout to a single mount at
+      # /var/lib/postgresql (not .../data), see docker-library/postgres#1259.
+      - dev-postgres:/var/lib/postgresql
+      - ./docker/dev/postgres-initdb:/docker-entrypoint-initdb.d:ro
     healthcheck:
       test: ["CMD", "pg_isready", "-U", "app", "-d", "app"]
       interval: 5s
