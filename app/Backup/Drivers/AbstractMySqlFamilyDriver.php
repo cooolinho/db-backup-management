@@ -110,7 +110,13 @@ abstract class AbstractMySqlFamilyDriver implements DatabaseDriver
             ->addExtraOption('--triggers')
             ->addExtraOption('--events')
             ->addExtraOption('--hex-blob')
-            ->addExtraOption('--no-tablespaces');
+            ->addExtraOption('--no-tablespaces')
+            // The target is only ever reachable over the internal Docker
+            // network this container is attached to, never over the
+            // public internet, so TLS buys no confidentiality here - and
+            // a modern mariadb-client (11.x) refuses by default to trust
+            // a MySQL/MariaDB server's self-signed certificate.
+            ->addExtraOption('--skip-ssl');
 
         if (! empty($config['unix_socket'])) {
             $dumper->setSocket($config['unix_socket']);
@@ -145,6 +151,7 @@ abstract class AbstractMySqlFamilyDriver implements DatabaseDriver
                 "--defaults-extra-file={$credentialsFile}",
                 '--host='.$config['host'],
                 '--port='.$config['port'],
+                '--skip-ssl',
                 $database,
             ]);
             $process->setInput($handle);

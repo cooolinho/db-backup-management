@@ -102,6 +102,21 @@ services:
     networks:
       - target
 
+  # PHP CLI + Composer + database clients, for running the test suite
+  # without installing PHP locally:
+  #   docker compose -f docker-compose.dev.yml run --rm app composer test
+  #   docker compose -f docker-compose.dev.yml run --rm app composer test:integration
+  app:
+    build:
+      context: docker/dev
+      dockerfile: Dockerfile
+    profiles: ["tools"]
+    working_dir: /var/www/html
+    volumes:
+      - .:/var/www/html
+    networks:
+      - target
+
 networks:
   target:
     name: "${BACKUP_DOCKER_NETWORK:?Please set BACKUP_DOCKER_NETWORK in .env to the name of your project's Docker network.}"
