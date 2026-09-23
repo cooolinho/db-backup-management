@@ -1,58 +1,112 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# DB Backup Manager
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+A self-contained Docker container that drops into an existing project's Docker network and gives
+it scheduled, restorable database backups through a small password-protected web UI — no exposed
+database port required.
 
-## About Laravel
+## 📖 About
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+Most projects that run their database only inside a private Docker network have no easy way to
+back it up, download a copy, or roll back a bad deployment without shelling into the container.
+This tool adds exactly that: it joins the project's existing Docker network as a second container,
+connects to the database as an application user for read-only work and as root/superuser only for
+the operations that actually need it (dump, import, rename/swap), and exposes a Laravel/Filament UI
+on its own port.
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+A restore never overwrites data in place. It imports the dump into a temporary database first, and
+only swaps it in once that import succeeded — the database's previous content is kept as a
+timestamped archive, never deleted outright. MySQL, MariaDB and PostgreSQL are all supported.
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+## ✨ Features
 
-## Learning Laravel
+- Scheduled backups (cron expression or presets), manual backups, and external dump uploads, all
+  in `.sql`, `.sql.gz`, `.zip` or `.tar.gz`
+- Safe restore: import into a temporary database, verify, then atomically swap — the previous
+  database state is preserved as a versioned archive (`{db}_{date}_{time}_v{n}`), never lost
+- Archive management: list, swap back in, or permanently delete old archived databases
+- Optional second copy on any S3-compatible storage (AWS S3, MinIO, Hetzner, …), with independent
+  local/remote retention
+- Failure notifications (database, mail, Slack/Discord/generic webhook) and a stale-backup watchdog
+- Full audit log of every user and system action
+- Dashboard with target database reachability, last backup, next run, storage usage and archive
+  count
+- German and English UI (`APP_LOCALE`)
+- CLI commands (`backup:run --wait`, `backup:restore --wait`) for scripting into deploy pipelines
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
-
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
-
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
-
-## Agentic Development
-
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
+## 🚀 Getting Started
 
 ```bash
-composer require laravel/boost --dev
-
-php artisan boost:install
+cp .env.example .env
+# Fill in DB_* (copied from the target project) and BACKUP_DOCKER_NETWORK (see docs)
+docker compose up -d --build
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+The UI is then reachable at `http://localhost:${BACKUP_UI_PORT:-8090}`. A first admin user is
+created automatically from `BACKUP_ADMIN_*` in `.env`.
 
-## Contributing
+Full walkthrough, including how to find the target project's Docker network and how to hand over
+root database credentials: [docs/01-installation.md](docs/01-installation.md).
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+## 📋 Usage
 
-## Code of Conduct
+Trigger a backup and gate a deployment on it succeeding:
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+```bash
+docker compose exec db-backup php artisan backup:run --wait
+```
 
-## Security Vulnerabilities
+Restore a backup non-interactively (e.g. an automated rollback):
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+```bash
+docker compose exec db-backup php artisan backup:restore <backup-id> --wait --force
+```
 
-## License
+Import a large dump already copied onto the server:
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+```bash
+docker compose exec db-backup php artisan backup:import /path/to/dump.sql.gz
+```
+
+Everything else — scheduling, retention, S3, restore behavior per engine, notifications, the audit
+log — is covered in [📚 Documentation](#-documentation).
+
+## 📁 Project Structure
+
+```
+app/
+  Backup/          Drivers (MySQL/MariaDB/PostgreSQL), BackupService, RestoreService,
+                    RetentionService, ArchiveNamer, DumpValidator, OperationLock
+  Console/Commands/ backup:run, backup:restore, backup:import, backup:tick, app:ensure-admin
+  Filament/         Resources, Pages, Actions and Widgets for the web UI
+  Jobs/             Queue jobs for backup, restore, swap and archive deletion
+  Support/          Audit log writer, FailureNotifier
+docker/
+  dev/              PHP CLI + database clients image for running the test suite
+docs/               German-language operations handbook (see below)
+docker-compose.yml      Standalone deployment (joins an external Docker network)
+docker-compose.dev.yml  Local database fixtures + dev/test tooling
+```
+
+## 📚 Documentation
+
+An in-depth German-language handbook lives under [`docs/`](docs/README.md):
+
+1. [Installation](docs/01-installation.md)
+2. [Configuration](docs/02-konfiguration.md)
+3. [Backups](docs/03-backups.md)
+4. [Restore](docs/04-wiederherstellung.md)
+5. [Uploading external dumps](docs/05-upload.md)
+6. [Notifications and audit log](docs/06-benachrichtigungen-audit.md)
+7. [Operations and security](docs/07-betrieb-sicherheit.md)
+8. [Development](docs/08-entwicklung.md)
+9. [Troubleshooting](docs/09-fehlerbehebung.md)
+
+## 🔗 References
+
+- [Laravel](https://laravel.com/docs)
+- [Filament](https://filamentphp.com/docs)
+- [Spatie DB Dumper](https://github.com/spatie/db-dumper)
+
+## 📄 License
+
+This project is open-sourced software licensed under the [MIT license](LICENSE).
