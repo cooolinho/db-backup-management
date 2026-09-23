@@ -57,3 +57,26 @@ if (! function_exists('target_database_connection')) {
         };
     }
 }
+
+if (! function_exists('backup_upload_max_kb')) {
+    /**
+     * Converts BACKUP_UPLOAD_MAX (e.g. "2G", "512M", a plain number of
+     * bytes) into the KB integer Laravel's/Livewire's "max:" file
+     * validation rule expects.
+     */
+    function backup_upload_max_kb(): int
+    {
+        $raw = trim((string) env('BACKUP_UPLOAD_MAX', '2G'));
+        $unit = strtoupper(substr($raw, -1));
+        $value = (float) $raw;
+
+        $kb = match ($unit) {
+            'G' => $value * 1024 * 1024,
+            'M' => $value * 1024,
+            'K' => $value,
+            default => $value / 1024, // no unit suffix: assume raw bytes
+        };
+
+        return max(1, (int) round($kb));
+    }
+}

@@ -30,7 +30,7 @@ class Backup extends Model
 
     public function isRunning(): bool
     {
-        return $this->status === 'running';
+        return in_array($this->status, ['running', 'validating'], true);
     }
 
     public function isSuccessful(): bool

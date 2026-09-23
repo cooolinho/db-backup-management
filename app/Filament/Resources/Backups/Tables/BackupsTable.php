@@ -6,6 +6,7 @@ use App\Filament\Resources\Backups\Actions\CreateBackupAction;
 use App\Filament\Resources\Backups\Actions\DeleteBackupAction;
 use App\Filament\Resources\Backups\Actions\DownloadBackupAction;
 use App\Filament\Resources\Backups\Actions\RestoreBackupAction;
+use App\Filament\Resources\Backups\Actions\UploadDumpAction;
 use App\Models\Backup;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
@@ -33,12 +34,13 @@ class BackupsTable
                     ->badge()
                     ->formatStateUsing(fn (string $state) => match ($state) {
                         'running' => 'Läuft',
+                        'validating' => 'Wird geprüft',
                         'success' => 'Erfolgreich',
                         'failed' => 'Fehlgeschlagen',
                         default => $state,
                     })
                     ->color(fn (string $state) => match ($state) {
-                        'running' => 'warning',
+                        'running', 'validating' => 'warning',
                         'success' => 'success',
                         'failed' => 'danger',
                         default => 'gray',
@@ -86,6 +88,7 @@ class BackupsTable
             ])
             ->toolbarActions([
                 CreateBackupAction::make(),
+                UploadDumpAction::make(),
             ])
             ->emptyStateHeading('Noch keine Backups')
             ->emptyStateDescription('Erstelle das erste Backup, oder warte auf den nächsten geplanten Lauf.');
