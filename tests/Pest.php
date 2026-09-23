@@ -36,5 +36,6 @@ pest()->extend(TestCase::class)
 |
 */
 pest()->extend(TestCase::class)
+    ->use(RefreshDatabase::class)
     ->in('Integration')
     ->group('integration');

@@ -47,15 +47,27 @@ return [
             'report' => false,
         ],
 
+        // Where dump files actually live (BACKUP_PATH), kept separate from
+        // Laravel's own 'local'/'public' disks (Livewire temp uploads, etc.)
+        'backups' => [
+            'driver' => 'local',
+            'root' => env('BACKUP_PATH', '/backups'),
+            'throw' => true,
+            'report' => false,
+        ],
+
+        // The optional second copy; reads BACKUP_S3_* (its own config, not
+        // AWS_*) so it can point at any S3-compatible provider (MinIO,
+        // Hetzner, ...), not just AWS.
         's3' => [
             'driver' => 's3',
-            'key' => env('AWS_ACCESS_KEY_ID'),
-            'secret' => env('AWS_SECRET_ACCESS_KEY'),
-            'region' => env('AWS_DEFAULT_REGION'),
-            'bucket' => env('AWS_BUCKET'),
-            'url' => env('AWS_URL'),
-            'endpoint' => env('AWS_ENDPOINT'),
-            'use_path_style_endpoint' => env('AWS_USE_PATH_STYLE_ENDPOINT', false),
+            'key' => env('BACKUP_S3_KEY'),
+            'secret' => env('BACKUP_S3_SECRET'),
+            'region' => env('BACKUP_S3_REGION', 'eu-central-1'),
+            'bucket' => env('BACKUP_S3_BUCKET'),
+            'root' => env('BACKUP_S3_PREFIX', 'db-backups'),
+            'endpoint' => env('BACKUP_S3_ENDPOINT') ?: null,
+            'use_path_style_endpoint' => (bool) env('BACKUP_S3_PATH_STYLE', false),
             'throw' => false,
             'report' => false,
         ],
