@@ -33,7 +33,7 @@ if (! function_exists('target_database_connection')) {
                 // Without this, a target host that's unreachable (wrong
                 // network, DB container down) hangs every page/job that
                 // touches the connection instead of failing fast.
-                'options' => [PDO::ATTR_TIMEOUT => 5],
+                'options' => [PDO::ATTR_TIMEOUT => (int) env('DB_CONNECT_TIMEOUT', 5)],
             ],
             default => [
                 // 'mysql' or 'mariadb'
@@ -52,7 +52,7 @@ if (! function_exists('target_database_connection')) {
                 'engine' => null,
                 'options' => (extension_loaded('pdo_mysql') ? array_filter([
                     Mysql::ATTR_SSL_CA => env('MYSQL_ATTR_SSL_CA'),
-                ]) : []) + [PDO::ATTR_TIMEOUT => 5],
+                ]) : []) + [PDO::ATTR_TIMEOUT => (int) env('DB_CONNECT_TIMEOUT', 5)],
             ],
         };
     }

@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Backups\Actions;
 
 use App\Models\Backup;
+use App\Support\Audit;
 use Filament\Actions\Action;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Support\Facades\Storage;
@@ -13,7 +14,7 @@ class DownloadBackupAction
     public static function make(): Action
     {
         return Action::make('download')
-            ->label('Herunterladen')
+            ->label(__('Herunterladen'))
             ->icon(Heroicon::ArrowDownTray)
             ->visible(fn (Backup $record) => $record->isSuccessful() && ($record->on_local || $record->on_s3))
             ->action(function (Backup $record): StreamedResponse {
@@ -22,8 +23,10 @@ class DownloadBackupAction
                 abort_unless(
                     $record->path && Storage::disk($disk)->exists($record->path),
                     404,
-                    'Backup-Datei nicht gefunden.',
+                    __('Backup-Datei nicht gefunden.'),
                 );
+
+                Audit::record('backup.downloaded', "Backup #{$record->id} heruntergeladen", $record);
 
                 return response()->streamDownload(function () use ($record, $disk) {
                     $stream = Storage::disk($disk)->readStream($record->path);

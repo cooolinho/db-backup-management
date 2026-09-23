@@ -22,21 +22,21 @@ class RestoreBackupAction
     public static function make(): Action
     {
         return Action::make('restore')
-            ->label('Wiederherstellen')
+            ->label(__('Wiederherstellen'))
             ->icon(Heroicon::ArrowUturnLeft)
             ->color('warning')
             ->visible(fn (Backup $record) => $record->isSuccessful() && $record->on_local)
             ->disabled(fn () => app(OperationLock::class)->isHeld())
             ->schema(fn (Backup $record) => [
-                Text::make("Die Datenbank [{$record->database}] wird ersetzt. Ihr aktueller Inhalt bleibt als neues Archiv erhalten.")
+                Text::make(__('Die Datenbank [:database] wird ersetzt. Ihr aktueller Inhalt bleibt als neues Archiv erhalten.', ['database' => $record->database]))
                     ->color('warning'),
                 TextInput::make('confirm')
-                    ->label("Zum Bestätigen \"{$record->database}\" eingeben")
+                    ->label(__('Zum Bestätigen ":database" eingeben', ['database' => $record->database]))
                     ->placeholder($record->database)
                     ->required()
                     ->rule(fn () => function (string $attribute, $value, $fail) use ($record) {
                         if ($value !== $record->database) {
-                            $fail('Der eingegebene Name stimmt nicht überein.');
+                            $fail(__('Der eingegebene Name stimmt nicht überein.'));
                         }
                     }),
             ])
@@ -45,8 +45,8 @@ class RestoreBackupAction
                 RestoreBackupJob::dispatch($restore->id);
 
                 Notification::make()
-                    ->title('Wiederherstellung wurde eingereiht')
-                    ->body('Der Fortschritt ist unter "Wiederherstellungen" zu sehen.')
+                    ->title(__('Wiederherstellung wurde eingereiht'))
+                    ->body(__('Der Fortschritt ist unter "Wiederherstellungen" zu sehen.'))
                     ->success()
                     ->send();
             });

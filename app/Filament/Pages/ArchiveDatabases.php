@@ -32,13 +32,19 @@ class ArchiveDatabases extends Page implements HasTable
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedArchiveBox;
 
-    protected static ?string $navigationLabel = 'Archiv-Datenbanken';
-
-    protected static ?string $title = 'Archiv-Datenbanken';
-
     protected static ?int $navigationSort = 2;
 
     private bool $unreachable = false;
+
+    public static function getNavigationLabel(): string
+    {
+        return __('Archiv-Datenbanken');
+    }
+
+    public function getTitle(): string
+    {
+        return __('Archiv-Datenbanken');
+    }
 
     public function content(Schema $schema): Schema
     {
@@ -55,33 +61,33 @@ class ArchiveDatabases extends Page implements HasTable
             ->records(fn () => $this->archives($database))
             ->columns([
                 TextColumn::make('name')
-                    ->label('Name')
+                    ->label(__('Name'))
                     ->searchable(),
 
                 TextColumn::make('size')
-                    ->label('Größe')
+                    ->label(__('Größe'))
                     ->alignEnd(),
 
                 TextColumn::make('created_at')
-                    ->label('Erstellt'),
+                    ->label(__('Erstellt')),
 
                 TextColumn::make('version')
-                    ->label('Version')
+                    ->label(__('Version'))
                     ->badge()
                     ->color('gray'),
 
                 TextColumn::make('restore')
-                    ->label('Wiederherstellung')
+                    ->label(__('Wiederherstellung'))
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->recordActions([
                 SwapBackArchiveAction::make($database),
                 DeleteArchiveAction::make($database),
             ])
-            ->emptyStateHeading(fn () => $this->unreachable ? 'Zieldatenbank nicht erreichbar' : 'Keine Archiv-Datenbanken')
+            ->emptyStateHeading(fn () => $this->unreachable ? __('Zieldatenbank nicht erreichbar') : __('Keine Archiv-Datenbanken'))
             ->emptyStateDescription(fn () => $this->unreachable
-                ? 'Die Verbindung zur Zieldatenbank ist gerade nicht möglich. Archiv-Datenbanken können erst wieder angezeigt werden, sobald sie erreichbar ist.'
-                : 'Nach der ersten Wiederherstellung erscheint hier der vorherige Stand.');
+                ? __('Die Verbindung zur Zieldatenbank ist gerade nicht möglich. Archiv-Datenbanken können erst wieder angezeigt werden, sobald sie erreichbar ist.')
+                : __('Nach der ersten Wiederherstellung erscheint hier der vorherige Stand.'));
     }
 
     /** @return Collection<int, array<string, mixed>> */
@@ -121,9 +127,9 @@ class ArchiveDatabases extends Page implements HasTable
                 'version' => $parsed['version'] ?? '—',
                 'restore' => $restore
                     ? match ($restore->status) {
-                        'success' => 'Erfolgreich',
-                        'failed' => 'Fehlgeschlagen',
-                        default => 'Läuft',
+                        'success' => __('Erfolgreich'),
+                        'failed' => __('Fehlgeschlagen'),
+                        default => __('Läuft'),
                     }
                     : '—',
             ];

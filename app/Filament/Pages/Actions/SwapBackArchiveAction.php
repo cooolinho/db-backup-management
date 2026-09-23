@@ -20,28 +20,28 @@ class SwapBackArchiveAction
     public static function make(string $database): Action
     {
         return Action::make('swapBack')
-            ->label('Zurücktauschen')
+            ->label(__('Zurücktauschen'))
             ->icon(Heroicon::ArrowUturnLeft)
             ->color('warning')
             ->disabled(fn () => app(OperationLock::class)->isHeld())
             ->schema(fn (array $record) => [
                 TextInput::make('confirm')
-                    ->label("Zum Bestätigen \"{$record['name']}\" eingeben")
+                    ->label(__('Zum Bestätigen ":name" eingeben', ['name' => $record['name']]))
                     ->placeholder($record['name'])
                     ->required()
                     ->rule(fn () => function (string $attribute, $value, $fail) use ($record) {
                         if ($value !== $record['name']) {
-                            $fail('Der eingegebene Name stimmt nicht überein.');
+                            $fail(__('Der eingegebene Name stimmt nicht überein.'));
                         }
                     }),
             ])
-            ->modalDescription(fn (array $record) => "Die aktuelle Datenbank [{$database}] wird durch [{$record['name']}] ersetzt. Ihr bisheriger Inhalt bleibt als neues Archiv erhalten.")
+            ->modalDescription(fn (array $record) => __('Die aktuelle Datenbank [:live] wird durch [:archive] ersetzt. Ihr bisheriger Inhalt bleibt als neues Archiv erhalten.', ['live' => $database, 'archive' => $record['name']]))
             ->action(function (array $record) use ($database) {
                 $restore = app(RestoreService::class)->prepareSwapBack($database, $record['name'], auth()->id());
                 SwapArchiveJob::dispatch($restore->id);
 
                 Notification::make()
-                    ->title('Zurücktauschen wurde eingereiht')
+                    ->title(__('Zurücktauschen wurde eingereiht'))
                     ->success()
                     ->send();
             });

@@ -12,14 +12,14 @@ class CreateBackupAction
     public static function make(): Action
     {
         return Action::make('createBackup')
-            ->label('Backup jetzt erstellen')
+            ->label(__('Backup jetzt erstellen'))
             ->icon(Heroicon::Plus)
             ->action(function () {
                 CreateBackupJob::dispatch(source: 'manual', triggeredBy: auth()->id());
 
                 Notification::make()
-                    ->title('Backup wurde eingereiht')
-                    ->body('Es erscheint in der Liste, sobald es läuft.')
+                    ->title(__('Backup wurde eingereiht'))
+                    ->body(__('Es erscheint in der Liste, sobald es läuft.'))
                     ->success()
                     ->send();
             });

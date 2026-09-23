@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Backups\Actions;
 
 use App\Models\Backup;
+use App\Support\Audit;
 use Filament\Actions\Action;
 use Filament\Notifications\Notification;
 use Filament\Support\Icons\Heroicon;
@@ -17,11 +18,11 @@ class DeleteBackupAction
     public static function make(): Action
     {
         return Action::make('delete')
-            ->label('Löschen')
+            ->label(__('Löschen'))
             ->icon(Heroicon::Trash)
             ->color('danger')
             ->requiresConfirmation()
-            ->modalDescription('Das Backup und alle gespeicherten Kopien (lokal und S3) werden endgültig gelöscht.')
+            ->modalDescription(__('Das Backup und alle gespeicherten Kopien (lokal und S3) werden endgültig gelöscht.'))
             ->visible(fn (Backup $record) => ! $record->isRunning())
             ->action(function (Backup $record) {
                 if ($record->on_local && $record->path && Storage::disk('backups')->exists($record->path)) {
@@ -32,10 +33,12 @@ class DeleteBackupAction
                     Storage::disk('s3')->delete($record->path);
                 }
 
+                Audit::record('backup.deleted', "Backup #{$record->id} von [{$record->database}] gelöscht", $record);
+
                 $record->delete();
 
                 Notification::make()
-                    ->title('Backup gelöscht')
+                    ->title(__('Backup gelöscht'))
                     ->success()
                     ->send();
             });

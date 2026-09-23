@@ -4,6 +4,7 @@ namespace App\Backup;
 
 use App\Models\Backup;
 use App\Settings\BackupSettings;
+use App\Support\Audit;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Throwable;
@@ -37,6 +38,8 @@ class BackupService
             'started_at' => now(),
         ]);
 
+        Audit::record('backup.requested', "Backup von [{$database}] angefordert ({$source})", $backup, userId: $triggeredBy);
+
         $rawPath = sys_get_temp_dir().'/dump_'.bin2hex(random_bytes(8)).'.sql';
 
         try {
@@ -68,6 +71,11 @@ class BackupService
 
             $this->retention->prune($database, $settings->keepLocal, $settings->keepS3);
 
+            Audit::record('backup.created', "Backup #{$backup->id} von [{$database}] erstellt", $backup, [
+                'size_bytes' => $backup->size_bytes,
+                'format' => $backup->format,
+            ], userId: $triggeredBy);
+
             return $backup;
         } catch (Throwable $e) {
             Log::error("Backup of [{$database}] failed: {$e->getMessage()}", ['exception' => $e]);
@@ -77,6 +85,8 @@ class BackupService
                 'error_message' => $e->getMessage(),
                 'finished_at' => now(),
             ]);
+
+            Audit::record('backup.failed', "Backup von [{$database}] fehlgeschlagen: {$e->getMessage()}", $backup, userId: $triggeredBy);
 
             throw $e;
         } finally {

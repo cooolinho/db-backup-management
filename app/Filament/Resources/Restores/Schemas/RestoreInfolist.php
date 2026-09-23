@@ -13,27 +13,27 @@ class RestoreInfolist
     public static function configure(Schema $schema): Schema
     {
         return $schema->components([
-            Section::make('Übersicht')
+            Section::make(__('Übersicht'))
                 ->schema([
                     Grid::make(3)->schema([
                         TextEntry::make('kind')
-                            ->label('Art')
+                            ->label(__('Art'))
                             ->formatStateUsing(fn (string $state) => match ($state) {
-                                'restore' => 'Wiederherstellung',
-                                'swap_back' => 'Zurücktauschen',
+                                'restore' => __('Wiederherstellung'),
+                                'swap_back' => __('Zurücktauschen'),
                                 default => $state,
                             }),
 
-                        TextEntry::make('database')->label('Datenbank'),
+                        TextEntry::make('database')->label(__('Datenbank')),
 
                         TextEntry::make('status')
-                            ->label('Status')
+                            ->label(__('Status'))
                             ->badge()
                             ->formatStateUsing(fn (string $state) => match ($state) {
-                                'pending' => 'Wartet',
-                                'running' => 'Läuft',
-                                'success' => 'Erfolgreich',
-                                'failed' => 'Fehlgeschlagen',
+                                'pending' => __('Wartet'),
+                                'running' => __('Läuft'),
+                                'success' => __('Erfolgreich'),
+                                'failed' => __('Fehlgeschlagen'),
                                 default => $state,
                             })
                             ->color(fn (string $state) => match ($state) {
@@ -44,17 +44,17 @@ class RestoreInfolist
                                 default => 'gray',
                             }),
 
-                        TextEntry::make('source_archive')->label('Quelle'),
-                        TextEntry::make('tmp_database')->label('Temporäre Datenbank')->default('—'),
-                        TextEntry::make('archive_name')->label('Neues Archiv')->default('—'),
+                        TextEntry::make('source_archive')->label(__('Quelle')),
+                        TextEntry::make('tmp_database')->label(__('Temporäre Datenbank'))->default('—'),
+                        TextEntry::make('archive_name')->label(__('Neues Archiv'))->default('—'),
 
-                        TextEntry::make('triggeredBy.name')->label('Ausgelöst von')->default('—'),
-                        TextEntry::make('started_at')->label('Gestartet')->dateTime('d.m.Y H:i:s'),
-                        TextEntry::make('finished_at')->label('Beendet')->dateTime('d.m.Y H:i:s')->default('—'),
+                        TextEntry::make('triggeredBy.name')->label(__('Ausgelöst von'))->default('—'),
+                        TextEntry::make('started_at')->label(__('Gestartet'))->dateTime('d.m.Y H:i:s'),
+                        TextEntry::make('finished_at')->label(__('Beendet'))->dateTime('d.m.Y H:i:s')->default('—'),
                     ]),
                 ]),
 
-            Section::make('Fehlermeldung')
+            Section::make(__('Fehlermeldung'))
                 ->schema([
                     TextEntry::make('error_message')
                         ->hiddenLabel()
@@ -62,7 +62,7 @@ class RestoreInfolist
                 ])
                 ->visible(fn ($record) => filled($record->error_message)),
 
-            Section::make('Protokoll')
+            Section::make(__('Protokoll'))
                 ->schema([
                     TextEntry::make('log')
                         ->hiddenLabel()

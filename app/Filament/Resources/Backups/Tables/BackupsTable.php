@@ -21,22 +21,22 @@ class BackupsTable
             ->defaultSort('created_at', 'desc')
             ->columns([
                 TextColumn::make('database')
-                    ->label('Datenbank')
+                    ->label(__('Datenbank'))
                     ->searchable(),
 
                 TextColumn::make('format')
-                    ->label('Format')
+                    ->label(__('Format'))
                     ->badge()
                     ->color('gray'),
 
                 TextColumn::make('status')
-                    ->label('Status')
+                    ->label(__('Status'))
                     ->badge()
                     ->formatStateUsing(fn (string $state) => match ($state) {
-                        'running' => 'Läuft',
-                        'validating' => 'Wird geprüft',
-                        'success' => 'Erfolgreich',
-                        'failed' => 'Fehlgeschlagen',
+                        'running' => __('Läuft'),
+                        'validating' => __('Wird geprüft'),
+                        'success' => __('Erfolgreich'),
+                        'failed' => __('Fehlgeschlagen'),
                         default => $state,
                     })
                     ->color(fn (string $state) => match ($state) {
@@ -47,37 +47,37 @@ class BackupsTable
                     }),
 
                 TextColumn::make('source')
-                    ->label('Auslöser')
+                    ->label(__('Auslöser'))
                     ->formatStateUsing(fn (string $state) => match ($state) {
-                        'scheduled' => 'Geplant',
-                        'manual' => 'Manuell',
-                        'upload' => 'Hochgeladen',
-                        'cli' => 'CLI',
+                        'scheduled' => __('Geplant'),
+                        'manual' => __('Manuell'),
+                        'upload' => __('Hochgeladen'),
+                        'cli' => __('CLI'),
                         default => $state,
                     })
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('size_bytes')
-                    ->label('Größe')
+                    ->label(__('Größe'))
                     ->formatStateUsing(fn (?int $state) => self::humanSize($state))
                     ->alignEnd(),
 
                 IconColumn::make('on_local')
-                    ->label('Lokal')
+                    ->label(__('Lokal'))
                     ->boolean(),
 
                 IconColumn::make('on_s3')
-                    ->label('S3')
+                    ->label(__('S3'))
                     ->boolean()
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('started_at')
-                    ->label('Gestartet')
+                    ->label(__('Gestartet'))
                     ->dateTime('d.m.Y H:i')
                     ->sortable(),
 
                 TextColumn::make('duration')
-                    ->label('Dauer')
+                    ->label(__('Dauer'))
                     ->state(fn (Backup $record) => self::duration($record))
                     ->alignEnd(),
             ])
@@ -90,8 +90,8 @@ class BackupsTable
                 CreateBackupAction::make(),
                 UploadDumpAction::make(),
             ])
-            ->emptyStateHeading('Noch keine Backups')
-            ->emptyStateDescription('Erstelle das erste Backup, oder warte auf den nächsten geplanten Lauf.');
+            ->emptyStateHeading(__('Noch keine Backups'))
+            ->emptyStateDescription(__('Erstelle das erste Backup, oder warte auf den nächsten geplanten Lauf.'));
     }
 
     private static function humanSize(?int $bytes): string

@@ -3,6 +3,7 @@
 namespace App\Filament\Pages;
 
 use App\Settings\BackupSettings;
+use App\Support\Audit;
 use BackedEnum;
 use Cron\CronExpression;
 use Filament\Forms\Components\Select;
@@ -20,59 +21,68 @@ class ManageBackupSettings extends SettingsPage
 {
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedCog6Tooth;
 
-    protected static ?string $navigationLabel = 'Einstellungen';
-
-    protected static ?string $title = 'Backup-Einstellungen';
-
     protected static string $settings = BackupSettings::class;
 
     private const WEEKLY_CRON = '0 3 * * 0';
 
+    /** @var array<string, mixed> */
+    private array $before = [];
+
+    public static function getNavigationLabel(): string
+    {
+        return __('Einstellungen');
+    }
+
+    public function getTitle(): string
+    {
+        return __('Backup-Einstellungen');
+    }
+
     public function form(Schema $schema): Schema
     {
         return $schema->components([
-            Section::make('Zeitplan')
-                ->description('Wie oft automatisch ein Backup der Zieldatenbank erstellt wird.')
+            Section::make(__('Zeitplan'))
+                ->description(__('Wie oft automatisch ein Backup der Zieldatenbank erstellt wird.'))
                 ->columns(2)
                 ->schema([
                     Select::make('schedulePreset')
-                        ->label('Intervall')
+                        ->label(__('Intervall'))
                         ->live()
                         ->required()
                         ->options([
-                            'off' => 'Deaktiviert',
-                            'hourly' => 'Stündlich',
-                            'every6hours' => 'Alle 6 Stunden',
-                            'daily' => 'Täglich',
-                            'weekly' => 'Wöchentlich (Sonntag)',
-                            'custom' => 'Benutzerdefiniert (Cron-Ausdruck)',
+                            'off' => __('Deaktiviert'),
+                            'hourly' => __('Stündlich'),
+                            'every6hours' => __('Alle 6 Stunden'),
+                            'daily' => __('Täglich'),
+                            'weekly' => __('Wöchentlich (Sonntag)'),
+                            'custom' => __('Benutzerdefiniert (Cron-Ausdruck)'),
                         ]),
 
                     TimePicker::make('dailyTime')
-                        ->label('Uhrzeit')
+                        ->label(__('Uhrzeit'))
                         ->seconds(false)
                         ->default('03:00')
                         ->visible(fn (Get $get) => $get('schedulePreset') === 'daily'),
 
                     TextInput::make('schedule')
-                        ->label('Cron-Ausdruck')
-                        ->helperText('Minute Stunde Tag Monat Wochentag, z. B. "0 3 * * *" für täglich um 3 Uhr.')
+                        ->label(__('Cron-Ausdruck'))
+                        ->helperText(__('Minute Stunde Tag Monat Wochentag, z. B. "0 3 * * *" für täglich um 3 Uhr.'))
                         ->visible(fn (Get $get) => $get('schedulePreset') === 'custom')
                         ->required(fn (Get $get) => $get('schedulePreset') === 'custom')
                         ->rule(function () {
                             return function (string $attribute, $value, $fail) {
                                 if (filled($value) && ! CronExpression::isValidExpression($value)) {
-                                    $fail('Kein gültiger Cron-Ausdruck.');
+                                    $fail(__('Kein gültiger Cron-Ausdruck.'));
                                 }
                             };
                         }),
                 ]),
 
-            Section::make('Backup-Datei')
+            Section::make(__('Backup-Datei'))
                 ->columns(2)
                 ->schema([
                     Select::make('format')
-                        ->label('Format')
+                        ->label(__('Format'))
                         ->required()
                         ->options([
                             'sql' => 'SQL',
@@ -82,20 +92,20 @@ class ManageBackupSettings extends SettingsPage
                         ]),
 
                     TextInput::make('keepLocal')
-                        ->label('Lokal behalten')
-                        ->helperText('Anzahl der letzten Backups; -1 = unbegrenzt.')
+                        ->label(__('Lokal behalten'))
+                        ->helperText(__('Anzahl der letzten Backups; -1 = unbegrenzt.'))
                         ->numeric()
                         ->required()
                         ->minValue(-1),
 
                     Toggle::make('s3Enabled')
-                        ->label('Zusätzlich auf S3 sichern')
+                        ->label(__('Zusätzlich auf S3 sichern'))
                         ->live()
-                        ->helperText('Zugangsdaten kommen aus der .env (BACKUP_S3_*).'),
+                        ->helperText(__('Zugangsdaten kommen aus der .env (BACKUP_S3_*).')),
 
                     TextInput::make('keepS3')
-                        ->label('Auf S3 behalten')
-                        ->helperText('Anzahl der letzten Backups; -1 = unbegrenzt.')
+                        ->label(__('Auf S3 behalten'))
+                        ->helperText(__('Anzahl der letzten Backups; -1 = unbegrenzt.'))
                         ->numeric()
                         ->required()
                         ->minValue(-1)
@@ -116,6 +126,17 @@ class ManageBackupSettings extends SettingsPage
 
     protected function mutateFormDataBeforeSave(array $data): array
     {
+        // Captured here (not in afterSave()) because this runs before the
+        // base SettingsPage::save() overwrites the real settings object.
+        $current = app(BackupSettings::class);
+        $this->before = [
+            'schedule' => $current->schedule,
+            'format' => $current->format,
+            'keepLocal' => $current->keepLocal,
+            'keepS3' => $current->keepS3,
+            's3Enabled' => $current->s3Enabled,
+        ];
+
         $data['schedule'] = match ($data['schedulePreset'] ?? 'custom') {
             'off' => null,
             'hourly' => '0 * * * *',
@@ -128,6 +149,27 @@ class ManageBackupSettings extends SettingsPage
         unset($data['schedulePreset'], $data['dailyTime']);
 
         return $data;
+    }
+
+    protected function afterSave(): void
+    {
+        $after = app(BackupSettings::class);
+        $changes = [];
+
+        foreach ($this->before as $key => $oldValue) {
+            $newValue = $after->{$key};
+
+            if ($oldValue !== $newValue) {
+                // Flat "old → new" strings (not a nested array) so
+                // KeyValueEntry on the audit log's view page - a flat
+                // key/value display - can show it directly.
+                $changes[$key] = self::displayValue($oldValue).' → '.self::displayValue($newValue);
+            }
+        }
+
+        if ($changes !== []) {
+            Audit::record('settings.updated', 'Backup-Einstellungen geändert', properties: $changes);
+        }
     }
 
     /** @return array{0: string, 1: string} [preset, dailyTime] */
@@ -151,5 +193,14 @@ class ManageBackupSettings extends SettingsPage
         $time = Carbon::parse($time);
 
         return "{$time->minute} {$time->hour} * * *";
+    }
+
+    private static function displayValue(mixed $value): string
+    {
+        return match (true) {
+            $value === null => 'leer',
+            is_bool($value) => $value ? 'ja' : 'nein',
+            default => (string) $value,
+        };
     }
 }

@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use App\Backup\RestoreService;
 use App\Jobs\RestoreBackupJob;
 use App\Models\Backup;
+use App\Support\FailureNotifier;
 use Illuminate\Console\Command;
 use Throwable;
 
@@ -22,7 +23,7 @@ class BackupRestoreCommand extends Command
 
     protected $description = 'Restore a backup, replacing the live database (its previous content is kept as an archive)';
 
-    public function handle(RestoreService $service): int
+    public function handle(RestoreService $service, FailureNotifier $notifier): int
     {
         $backup = Backup::find($this->argument('backup'));
 
@@ -59,11 +60,12 @@ class BackupRestoreCommand extends Command
 
         $succeeded = true;
 
-        $this->components->task('Restoring', function () use ($restore, $service, &$succeeded) {
+        $this->components->task('Restoring', function () use ($restore, $service, $notifier, &$succeeded) {
             try {
                 $service->restoreFromDump($restore);
             } catch (Throwable $e) {
                 $this->components->error($e->getMessage());
+                $notifier->report('Wiederherstellung', $restore->database, $e->getMessage());
                 $succeeded = false;
             }
         });

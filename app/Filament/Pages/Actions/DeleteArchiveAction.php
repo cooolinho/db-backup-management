@@ -14,27 +14,27 @@ class DeleteArchiveAction
     public static function make(string $database): Action
     {
         return Action::make('delete')
-            ->label('Löschen')
+            ->label(__('Löschen'))
             ->icon(Heroicon::Trash)
             ->color('danger')
             ->disabled(fn () => app(OperationLock::class)->isHeld())
             ->schema(fn (array $record) => [
                 TextInput::make('confirm')
-                    ->label("Zum Bestätigen \"{$record['name']}\" eingeben")
+                    ->label(__('Zum Bestätigen ":name" eingeben', ['name' => $record['name']]))
                     ->placeholder($record['name'])
                     ->required()
                     ->rule(fn () => function (string $attribute, $value, $fail) use ($record) {
                         if ($value !== $record['name']) {
-                            $fail('Der eingegebene Name stimmt nicht überein.');
+                            $fail(__('Der eingegebene Name stimmt nicht überein.'));
                         }
                     }),
             ])
-            ->modalDescription('Die archivierte Datenbank wird endgültig gelöscht.')
+            ->modalDescription(__('Die archivierte Datenbank wird endgültig gelöscht.'))
             ->action(function (array $record) use ($database) {
-                DropArchiveJob::dispatch($database, $record['name']);
+                DropArchiveJob::dispatch($database, $record['name'], auth()->id());
 
                 Notification::make()
-                    ->title('Löschen wurde eingereiht')
+                    ->title(__('Löschen wurde eingereiht'))
                     ->success()
                     ->send();
             });

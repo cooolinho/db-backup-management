@@ -20,13 +20,22 @@ class RestoreResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedArrowPathRoundedSquare;
 
-    protected static ?string $navigationLabel = 'Wiederherstellungen';
-
-    protected static ?string $modelLabel = 'Wiederherstellung';
-
-    protected static ?string $pluralModelLabel = 'Wiederherstellungen';
-
     protected static ?int $navigationSort = 3;
+
+    public static function getNavigationLabel(): string
+    {
+        return __('Wiederherstellungen');
+    }
+
+    public static function getModelLabel(): string
+    {
+        return __('Wiederherstellung');
+    }
+
+    public static function getPluralModelLabel(): string
+    {
+        return __('Wiederherstellungen');
+    }
 
     public static function canCreate(): bool
     {

@@ -4,12 +4,16 @@ namespace App\Jobs;
 
 use App\Backup\ArchiveNamer;
 use App\Backup\DriverFactory;
+use App\Backup\Exceptions\OperationInProgressException;
 use App\Backup\OperationLock;
+use App\Support\Audit;
+use App\Support\FailureNotifier;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use RuntimeException;
+use Throwable;
 
 /**
  * Deletes an archive database. $archiveName is re-validated against
@@ -26,6 +30,7 @@ class DropArchiveJob implements ShouldQueue
     public function __construct(
         public readonly string $database,
         public readonly string $archiveName,
+        public readonly ?int $triggeredBy = null,
     ) {
         $this->timeout = (int) config('backup.job_timeout');
     }
@@ -38,6 +43,22 @@ class DropArchiveJob implements ShouldQueue
             }
 
             $drivers->make()->dropDatabase($this->archiveName);
+
+            Audit::record(
+                'archive.dropped',
+                "Archiv [{$this->archiveName}] von [{$this->database}] gelöscht",
+                $this->archiveName,
+                userId: $this->triggeredBy,
+            );
         });
+    }
+
+    public function failed(Throwable $exception): void
+    {
+        if ($exception instanceof OperationInProgressException) {
+            return;
+        }
+
+        app(FailureNotifier::class)->report('Löschen des Archivs', $this->database, $exception->getMessage());
     }
 }

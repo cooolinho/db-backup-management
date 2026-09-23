@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Backup\BackupService;
 use App\Jobs\CreateBackupJob;
+use App\Support\FailureNotifier;
 use Illuminate\Console\Command;
 use Throwable;
 
@@ -13,7 +14,7 @@ class BackupRunCommand extends Command
 
     protected $description = 'Create a backup of the target database';
 
-    public function handle(BackupService $service): int
+    public function handle(BackupService $service, FailureNotifier $notifier): int
     {
         if (! $this->option('wait')) {
             CreateBackupJob::dispatch(source: 'cli');
@@ -22,13 +23,14 @@ class BackupRunCommand extends Command
             return self::SUCCESS;
         }
 
-        $this->components->task('Creating backup', function () use (&$backup, $service) {
+        $this->components->task('Creating backup', function () use (&$backup, $service, $notifier) {
             try {
                 $backup = $service->run(source: 'cli');
 
                 return true;
             } catch (Throwable $e) {
                 $this->components->error($e->getMessage());
+                $notifier->report('Backup', config('database.connections.target.database'), $e->getMessage());
 
                 return false;
             }

@@ -14,11 +14,11 @@ class UploadDumpAction
     public static function make(): Action
     {
         return Action::make('uploadDump')
-            ->label('Dump hochladen')
+            ->label(__('Dump hochladen'))
             ->icon(Heroicon::ArrowUpTray)
             ->schema([
                 FileUpload::make('file')
-                    ->label('Dump-Datei ('.implode(', ', ArchiveFormatter::FORMATS).')')
+                    ->label(__('Dump-Datei (:formats)', ['formats' => implode(', ', ArchiveFormatter::FORMATS)]))
                     ->disk('backups')
                     ->directory('.incoming')
                     ->visibility('private')
@@ -45,8 +45,8 @@ class UploadDumpAction
                 );
 
                 Notification::make()
-                    ->title('Dump wird geprüft')
-                    ->body('Er erscheint als "Wartet" in der Liste, bis die Prüfung abgeschlossen ist.')
+                    ->title(__('Dump wird geprüft'))
+                    ->body(__('Er erscheint als "Wartet" in der Liste, bis die Prüfung abgeschlossen ist.'))
                     ->success()
                     ->send();
             });

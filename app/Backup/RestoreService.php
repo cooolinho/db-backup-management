@@ -5,6 +5,7 @@ namespace App\Backup;
 use App\Backup\Drivers\DatabaseDriver;
 use App\Models\Backup;
 use App\Models\Restore;
+use App\Support\Audit;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use RuntimeException;
@@ -32,7 +33,7 @@ class RestoreService
             throw new RuntimeException('Only backups stored locally can be restored.');
         }
 
-        return Restore::create([
+        $restore = Restore::create([
             'backup_id' => $backup->id,
             'kind' => 'restore',
             'database' => $backup->database,
@@ -40,18 +41,26 @@ class RestoreService
             'status' => 'pending',
             'triggered_by' => $triggeredBy,
         ]);
+
+        Audit::record('restore.requested', "Wiederherstellung von [{$backup->database}] aus Backup #{$backup->id} angefordert", $restore, userId: $triggeredBy);
+
+        return $restore;
     }
 
     /** Creates the pending row; the actual work happens later in SwapArchiveJob via swapFromArchive(). */
     public function prepareSwapBack(string $database, string $archiveName, ?int $triggeredBy = null): Restore
     {
-        return Restore::create([
+        $restore = Restore::create([
             'kind' => 'swap_back',
             'database' => $database,
             'source_archive' => $archiveName,
             'status' => 'pending',
             'triggered_by' => $triggeredBy,
         ]);
+
+        Audit::record('restore.requested', "Zurücktauschen von [{$database}] zu Archiv [{$archiveName}] angefordert", $restore, userId: $triggeredBy);
+
+        return $restore;
     }
 
     public function restoreFromDump(Restore $restore): void
@@ -153,11 +162,15 @@ class RestoreService
 
         $restore->update(['status' => 'success', 'finished_at' => now()]);
         $restore->appendLog('done', "Done. The previous content of [{$database}] is archived as [{$newArchiveName}].");
+
+        Audit::record('restore.succeeded', "[{$database}] erfolgreich ersetzt, vorheriger Stand als [{$newArchiveName}] archiviert", $restore, userId: $restore->triggered_by);
     }
 
     private function fail(Restore $restore, Throwable $e): void
     {
         $restore->update(['status' => 'failed', 'error_message' => $e->getMessage(), 'finished_at' => now()]);
         $restore->appendLog('failed', $e->getMessage());
+
+        Audit::record('restore.failed', "Wiederherstellung von [{$restore->database}] fehlgeschlagen: {$e->getMessage()}", $restore, userId: $restore->triggered_by);
     }
 }

@@ -4,6 +4,7 @@ namespace App\Backup;
 
 use App\Jobs\ValidateUploadedDumpJob;
 use App\Models\Backup;
+use App\Support\Audit;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
@@ -47,6 +48,8 @@ class UploadedDumpRegistrar
             'triggered_by' => $triggeredBy,
             'started_at' => now(),
         ]);
+
+        Audit::record('backup.uploaded', "Dump \"{$originalName}\" hochgeladen als Backup #{$backup->id}", $backup, userId: $triggeredBy);
 
         if ($queueValidation) {
             ValidateUploadedDumpJob::dispatch($backup->id);
