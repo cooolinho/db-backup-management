@@ -5,6 +5,7 @@ namespace App\Filament\Resources\Backups\Tables;
 use App\Filament\Resources\Backups\Actions\CreateBackupAction;
 use App\Filament\Resources\Backups\Actions\DeleteBackupAction;
 use App\Filament\Resources\Backups\Actions\DownloadBackupAction;
+use App\Filament\Resources\Backups\Actions\RestoreBackupAction;
 use App\Models\Backup;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
@@ -80,6 +81,7 @@ class BackupsTable
             ])
             ->recordActions([
                 DownloadBackupAction::make(),
+                RestoreBackupAction::make(),
                 DeleteBackupAction::make(),
             ])
             ->toolbarActions([
