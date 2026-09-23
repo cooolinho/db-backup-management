@@ -1,0 +1,93 @@
+# Development/integration-test fixtures: one target database per engine,
+# plus S3-compatible storage and a mail catcher. NOT for production — all
+# ports are published to localhost and all credentials are fixed/public.
+#
+# Usage:
+#   docker compose -f docker-compose.dev.yml up -d
+# Then point DB_CONNECTION/DB_HOST/... (see .env.testing) at whichever
+# engine a given test run targets, and BACKUP_S3_ENDPOINT at MinIO.
+
+services:
+  mysql:
+    image: mysql:8.4
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: app
+      MYSQL_USER: app
+      MYSQL_PASSWORD: secret
+    ports:
+      - "13306:3306"
+    volumes:
+      - dev-mysql:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-proot"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  mariadb:
+    image: mariadb:11.4
+    restart: unless-stopped
+    environment:
+      MARIADB_ROOT_PASSWORD: root
+      MARIADB_DATABASE: app
+      MARIADB_USER: app
+      MARIADB_PASSWORD: secret
+    ports:
+      - "13307:3306"
+    volumes:
+      - dev-mariadb:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  postgres:
+    image: postgres:18
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: app
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: secret
+    ports:
+      - "15432:5432"
+    volumes:
+      - dev-postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "app", "-d", "app"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  minio:
+    image: minio/minio:latest
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    ports:
+      - "19000:9000"
+      - "19001:9001"
+    volumes:
+      - dev-minio:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  mailpit:
+    image: axllent/mailpit:latest
+    restart: unless-stopped
+    ports:
+      - "18025:8025" # web UI
+      - "11025:1025" # SMTP
+
+volumes:
+  dev-mysql:
+  dev-mariadb:
+  dev-postgres:
+  dev-minio:

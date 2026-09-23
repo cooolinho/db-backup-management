@@ -1,0 +1,30 @@
+# Standalone deployment: adds this tool to an EXISTING project's Docker
+# network so it can reach a database that has no port published to the
+# host. See docs/installation.md for how to point it at your project.
+#
+# Usage:
+#   cp .env.example .env    # then fill in DB_* / BACKUP_* / BACKUP_ADMIN_*
+#   docker compose up -d --build
+
+services:
+  db-backup:
+    build: .
+    container_name: ${COMPOSE_PROJECT_NAME:-db-backup}
+    restart: unless-stopped
+    env_file:
+      - .env
+    ports:
+      - "${BACKUP_UI_PORT:-8090}:8080"
+    volumes:
+      - db-backup-data:/data
+      - ${BACKUP_HOST_PATH:-./backups}:/backups
+    networks:
+      - target
+
+networks:
+  target:
+    name: ${BACKUP_DOCKER_NETWORK:?set BACKUP_DOCKER_NETWORK to the project's existing Docker network name (e.g. via: docker network ls)}
+    external: true
+
+volumes:
+  db-backup-data:
