@@ -2,6 +2,9 @@
 
 use Pdo\Mysql;
 
+// No `use PDO;` needed: this file has no namespace, and PDO is already a
+// global-namespace class.
+
 if (! function_exists('target_database_connection')) {
     /**
      * Build a Laravel database connection array for the project database
@@ -27,6 +30,10 @@ if (! function_exists('target_database_connection')) {
                 'prefix_indexes' => true,
                 'search_path' => 'public',
                 'sslmode' => env('DB_SSLMODE', 'prefer'),
+                // Without this, a target host that's unreachable (wrong
+                // network, DB container down) hangs every page/job that
+                // touches the connection instead of failing fast.
+                'options' => [PDO::ATTR_TIMEOUT => 5],
             ],
             default => [
                 // 'mysql' or 'mariadb'
@@ -43,9 +50,9 @@ if (! function_exists('target_database_connection')) {
                 'prefix_indexes' => true,
                 'strict' => true,
                 'engine' => null,
-                'options' => extension_loaded('pdo_mysql') ? array_filter([
+                'options' => (extension_loaded('pdo_mysql') ? array_filter([
                     Mysql::ATTR_SSL_CA => env('MYSQL_ATTR_SSL_CA'),
-                ]) : [],
+                ]) : []) + [PDO::ATTR_TIMEOUT => 5],
             ],
         };
     }

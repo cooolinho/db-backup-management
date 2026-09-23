@@ -40,7 +40,11 @@ return [
             'connection' => env('DB_QUEUE_CONNECTION'),
             'table' => env('DB_QUEUE_TABLE', 'jobs'),
             'queue' => env('DB_QUEUE', 'default'),
-            'retry_after' => (int) env('DB_QUEUE_RETRY_AFTER', 90),
+            // A backup/restore/swap job can run for as long as
+            // BACKUP_JOB_TIMEOUT; retry_after must clear that plus a
+            // margin, or the queue would think a still-running job was
+            // abandoned and hand it to a second worker.
+            'retry_after' => (int) env('BACKUP_JOB_TIMEOUT', 7200) + 60,
             'after_commit' => false,
         ],
 

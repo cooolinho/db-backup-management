@@ -23,7 +23,7 @@ services:
 
 networks:
   target:
-    name: ${BACKUP_DOCKER_NETWORK:?set BACKUP_DOCKER_NETWORK to the project's existing Docker network name (e.g. via: docker network ls)}
+    name: "${BACKUP_DOCKER_NETWORK:?Please set BACKUP_DOCKER_NETWORK in .env to the name of your project's Docker network.}"
     external: true
 
 volumes:

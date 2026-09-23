@@ -25,6 +25,8 @@ services:
       interval: 5s
       timeout: 5s
       retries: 20
+    networks:
+      - target
 
   mariadb:
     image: mariadb:11.4
@@ -43,6 +45,8 @@ services:
       interval: 5s
       timeout: 5s
       retries: 20
+    networks:
+      - target
 
   postgres:
     image: postgres:18
@@ -66,6 +70,8 @@ services:
       interval: 5s
       timeout: 5s
       retries: 20
+    networks:
+      - target
 
   minio:
     image: minio/minio:latest
@@ -84,6 +90,8 @@ services:
       interval: 5s
       timeout: 5s
       retries: 20
+    networks:
+      - target
 
   mailpit:
     image: axllent/mailpit:latest
@@ -91,6 +99,13 @@ services:
     ports:
       - "18025:8025" # web UI
       - "11025:1025" # SMTP
+    networks:
+      - target
+
+networks:
+  target:
+    name: "${BACKUP_DOCKER_NETWORK:?Please set BACKUP_DOCKER_NETWORK in .env to the name of your project's Docker network.}"
+    external: true
 
 volumes:
   dev-mysql:

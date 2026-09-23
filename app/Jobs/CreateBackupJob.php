@@ -3,12 +3,11 @@
 namespace App\Jobs;
 
 use App\Backup\BackupService;
+use App\Backup\OperationLock;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
-use Illuminate\Support\Facades\Cache;
-use RuntimeException;
 
 /**
  * Only one of CreateBackupJob/RestoreBackupJob/SwapArchiveJob may run at a
@@ -30,18 +29,8 @@ class CreateBackupJob implements ShouldQueue
         $this->timeout = (int) config('backup.job_timeout');
     }
 
-    public function handle(BackupService $service): void
+    public function handle(BackupService $service, OperationLock $lock): void
     {
-        $lock = Cache::lock('db-operation', (int) config('backup.job_timeout'));
-
-        if (! $lock->get()) {
-            throw new RuntimeException('Another backup, restore or swap is already running.');
-        }
-
-        try {
-            $service->run($this->source, $this->triggeredBy);
-        } finally {
-            $lock->release();
-        }
+        $lock->run(fn () => $service->run($this->source, $this->triggeredBy));
     }
 }

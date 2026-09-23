@@ -2,6 +2,8 @@
 
 namespace App\Backup\Drivers;
 
+use App\Backup\Drivers\Concerns\ConnectsToDatabases;
+use App\Backup\Drivers\Support\MySqlObjectRegistry;
 use Illuminate\Database\Connection;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
@@ -9,6 +11,7 @@ use Spatie\DbDumper\Databases\MariaDb as MariaDbDumper;
 use Spatie\DbDumper\Exceptions\DumpFailed;
 use Symfony\Component\Process\Exception\ProcessFailedException;
 use Symfony\Component\Process\Process;
+use Throwable;
 
 /**
  * Shared implementation for MySqlDriver and MariaDbDriver.
@@ -22,6 +25,8 @@ use Symfony\Component\Process\Process;
  */
 abstract class AbstractMySqlFamilyDriver implements DatabaseDriver
 {
+    use ConnectsToDatabases;
+
     public function __construct(
         protected readonly string $connection = 'target',
         protected readonly string $rootConnection = 'target_root',
@@ -153,6 +158,144 @@ abstract class AbstractMySqlFamilyDriver implements DatabaseDriver
             fclose($handle);
             @unlink($credentialsFile);
         }
+    }
+
+    public function tableCount(string $database): int
+    {
+        $row = $this->root()->selectOne(
+            "select count(*) as n from information_schema.tables where table_schema = ? and table_type = 'BASE TABLE'",
+            [$database]
+        );
+
+        return (int) $row->n;
+    }
+
+    public function listDatabases(string $likePrefix): array
+    {
+        $escaped = str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $likePrefix);
+
+        $rows = $this->root()->select(
+            'select schema_name as name from information_schema.schemata where schema_name like ? order by schema_name',
+            [$escaped.'%']
+        );
+
+        return array_map(fn ($row) => $row->name, $rows);
+    }
+
+    /**
+     * There is no RENAME DATABASE in MySQL/MariaDB. This instead: creates
+     * $archive (copying $live's charset/collation), drops triggers in
+     * $live and $replacement (the only object type that can block a
+     * cross-schema RENAME TABLE - views/routines/events don't), performs
+     * one atomic multi-table RENAME TABLE moving $live's tables into
+     * $archive and $replacement's tables into $live, then recreates
+     * views/routines/events/triggers in $live (from $replacement) and
+     * $archive (from $live's originals), and finally drops the now-empty
+     * $replacement. See MySqlObjectRegistry for why no reference
+     * rewriting is needed for any of that.
+     */
+    public function swap(string $live, string $replacement, string $archive): void
+    {
+        if (! $this->databaseExists($live)) {
+            throw new RuntimeException("Database [{$live}] does not exist.");
+        }
+        if (! $this->databaseExists($replacement)) {
+            throw new RuntimeException("Database [{$replacement}] does not exist.");
+        }
+        if ($this->databaseExists($archive)) {
+            throw new RuntimeException("Database [{$archive}] already exists.");
+        }
+
+        $this->createDatabase($archive, like: $live);
+
+        $liveConnection = $this->connectionFor($live);
+        $replacementConnection = $this->connectionFor($replacement);
+
+        $liveObjects = MySqlObjectRegistry::capture($liveConnection, $live);
+        $replacementObjects = MySqlObjectRegistry::capture($replacementConnection, $replacement);
+
+        MySqlObjectRegistry::dropTriggers($liveConnection, $liveObjects);
+        MySqlObjectRegistry::dropTriggers($replacementConnection, $replacementObjects);
+
+        try {
+            $this->renameAllTables($live, $replacement, $archive);
+        } catch (Throwable $e) {
+            // The rename never took effect (or MySQL rolled the whole
+            // RENAME TABLE list back - it's all-or-nothing): live and
+            // replacement still hold their original tables, so restoring
+            // their triggers and dropping the still-empty archive fully
+            // undoes everything attempted so far.
+            MySqlObjectRegistry::recreateTriggers($liveConnection, $liveObjects['triggers']);
+            MySqlObjectRegistry::recreateTriggers($replacementConnection, $replacementObjects['triggers']);
+            $this->dropDatabase($archive);
+            $this->purgeConnectionFor($live);
+            $this->purgeConnectionFor($replacement);
+
+            throw $e;
+        }
+
+        try {
+            // live now holds replacement's tables; give it replacement's
+            // views/routines/events/triggers too (its own old ones are
+            // stale - they'd reference whatever the new tables happen to
+            // still be named, not necessarily shaped the same way).
+            MySqlObjectRegistry::dropViewsRoutinesEvents($liveConnection, $liveObjects);
+            MySqlObjectRegistry::recreateAll($liveConnection, $replacementObjects);
+
+            $archiveConnection = $this->connectionFor($archive);
+            MySqlObjectRegistry::recreateAll($archiveConnection, $liveObjects);
+            $this->purgeConnectionFor($archive);
+
+            $this->dropDatabase($replacement);
+        } catch (Throwable $e) {
+            // The table data has already moved and is safe; only the
+            // schema objects (views/triggers/routines/events) are
+            // incomplete at this point, so this is reported rather than
+            // rolled back - undoing the table rename now would be its own
+            // atomicity problem, and the underlying data was the point.
+            throw new RuntimeException(
+                "The table swap for [{$live}] succeeded, but recreating views/triggers/routines/events failed: ".
+                "{$e->getMessage()} The data itself is safe; some views, triggers, routines or events may need to be recreated by hand.",
+                previous: $e,
+            );
+        } finally {
+            $this->purgeConnectionFor($live);
+            $this->purgeConnectionFor($replacement);
+        }
+    }
+
+    private function renameAllTables(string $live, string $replacement, string $archive): void
+    {
+        $pairs = [];
+
+        foreach ($this->tableNames($live) as $table) {
+            $pairs[] = $this->quoteIdentifier($live).'.'.$this->quoteIdentifier($table)
+                .' to '.$this->quoteIdentifier($archive).'.'.$this->quoteIdentifier($table);
+        }
+
+        foreach ($this->tableNames($replacement) as $table) {
+            $pairs[] = $this->quoteIdentifier($replacement).'.'.$this->quoteIdentifier($table)
+                .' to '.$this->quoteIdentifier($live).'.'.$this->quoteIdentifier($table);
+        }
+
+        if ($pairs === []) {
+            return;
+        }
+
+        $this->root()->statement('set session lock_wait_timeout = 30');
+        $this->root()->statement('rename table '.implode(', ', $pairs));
+    }
+
+    /** @return list<string> */
+    private function tableNames(string $database): array
+    {
+        return array_map(
+            fn ($row) => $row->name,
+            $this->root()->select(
+                "select table_name as name from information_schema.tables where table_schema = ? and table_type = 'BASE TABLE'",
+                [$database]
+            )
+        );
     }
 
     protected function root(): Connection

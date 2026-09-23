@@ -45,4 +45,26 @@ interface DatabaseDriver
      * the first SQL error instead of continuing past it.
      */
     public function import(string $database, string $sqlFilePath): void;
+
+    /** Number of user tables in $database; used as a sanity check after import(). */
+    public function tableCount(string $database): int;
+
+    /**
+     * Database names on the server starting with $likePrefix (a literal
+     * prefix, not a SQL LIKE pattern - implementations escape it).
+     * Used to discover archive/tmp databases; callers still verify each
+     * name against ArchiveNamer::isArchiveOf() before acting on it.
+     *
+     * @return list<string>
+     */
+    public function listDatabases(string $likePrefix): array;
+
+    /**
+     * Atomically replaces $live with $replacement, keeping the previous
+     * contents of $live as a new database named $archive. $replacement is
+     * gone afterwards (its content is now $live); $archive did not exist
+     * before the call. Throws and leaves $live untouched if $live or
+     * $replacement doesn't exist, or if $archive already exists.
+     */
+    public function swap(string $live, string $replacement, string $archive): void;
 }
