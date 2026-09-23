@@ -1,5 +1,32 @@
 # Fehlerbehebung
 
+## HTTP 500 / „Cannot modify header information — headers already sent" im Log
+
+Diese Meldung im `docker compose logs`-Output ist nur ein Folgefehler: Laravel hat schon eine
+500-Antwort verschickt, versucht danach beim Aufräumen (`terminate`) aber noch einmal, den ursprünglich
+aufgetretenen Fehler zu rendern — das scheitert, weil die Antwort bereits gesendet ist, und genau diese
+Kaskade landet im Log. Der eigentliche Fehler steht stattdessen nur im Laravel-Log im Container:
+
+```bash
+docker compose exec db-backup tail -n 40 storage/logs/laravel.log
+```
+
+Mit `LOG_STACK=single,stderr` (Standard seit `.env.example`, siehe
+[02-konfiguration.md](02-konfiguration.md)) taucht dieser eigentliche Fehler künftig auch direkt in
+`docker compose logs` auf.
+
+Häufigste Ursache: fehlender `APP_KEY` (`MissingAppKeyException`/„No application encryption key has
+been specified."). Der Key wird beim ersten Start automatisch erzeugt und nach `/data/app.key`
+persistiert — tritt der Fehler trotzdem auf, prüfen:
+
+```bash
+grep '^APP_KEY' .env                       # sollte leer sein, nicht fehlen
+docker compose exec db-backup cat /data/app.key
+```
+
+Ist `/data/app.key` leer oder fehlt, den Container einmal neu erzeugen (`docker compose up -d`) — das
+Entrypoint-Skript generiert den Key dann neu.
+
 ## „Access denied for user 'root'@'...'"
 
 Der konfigurierte Root-/Superuser darf nicht aus dem Docker-Netzwerk verbinden — meist, weil er bei

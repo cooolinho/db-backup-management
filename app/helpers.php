@@ -80,3 +80,27 @@ if (! function_exists('backup_upload_max_kb')) {
         return max(1, (int) round($kb));
     }
 }
+
+if (! function_exists('persisted_app_key')) {
+    /**
+     * Reads the APP_KEY persisted by docker/entrypoint.d/20-app-key.sh to
+     * /data/app.key, for use as a fallback when APP_KEY itself is unset.
+     *
+     * Needed because that script cannot write the key back into .env: an
+     * env_file-provided APP_KEY="" (see .env.example) already exists as a
+     * real environment variable, and Laravel's Dotenv repository never
+     * overwrites an existing variable, even an empty one. Returns null if
+     * the file doesn't exist yet or is empty (e.g. before the container's
+     * first start).
+     */
+    function persisted_app_key(string $path): ?string
+    {
+        if (! is_file($path)) {
+            return null;
+        }
+
+        $key = trim((string) file_get_contents($path));
+
+        return $key !== '' ? $key : null;
+    }
+}

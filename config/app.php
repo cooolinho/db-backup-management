@@ -97,7 +97,14 @@ return [
 
     'cipher' => 'AES-256-CBC',
 
-    'key' => env('APP_KEY'),
+    // Falls back to the key docker/entrypoint.d/20-app-key.sh persisted to
+    // /data/app.key when APP_KEY is unset. Needed because APP_KEY="" from
+    // env_file (see .env.example) is an existing env var, which Laravel's
+    // Dotenv repository never overwrites — writing the generated key back
+    // into .env silently has no effect, only /data/app.key reaches the app.
+    'key' => env('APP_KEY') ?: persisted_app_key(
+        dirname(env('APP_DATABASE_PATH', database_path('database.sqlite'))).'/app.key'
+    ),
 
     'previous_keys' => [
         ...array_filter(

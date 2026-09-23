@@ -28,7 +28,16 @@ docker compose logs -f db-backup
 ```
 
 Enthält nginx-, PHP-FPM-, Scheduler- und Queue-Worker-Ausgaben aus einem Container (s6-Overlay
-startet alle Dienste in einem gemeinsamen Prozessbaum).
+startet alle Dienste in einem gemeinsamen Prozessbaum). Dank `LOG_STACK=single,stderr` (Standard,
+siehe `.env.example`) landen darin auch Laravel-Exceptions aus der Weboberfläche. Für das
+vollständige, ungefilterte Laravel-Log direkt im Container:
+
+```bash
+docker compose exec db-backup tail -n 100 storage/logs/laravel.log
+```
+
+Die Datei liegt im beschreibbaren Layer des Containers, nicht in einem Volume, und geht bei jedem
+Neu-Erzeugen des Containers verloren.
 
 ## Weitere Benutzer und Passwort-Reset
 

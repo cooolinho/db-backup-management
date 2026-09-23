@@ -13,7 +13,8 @@ gekennzeichnet.
 |---|---|---|
 | `APP_NAME` | `DB Backup Manager` | Name in Titel/Mails |
 | `APP_ENV` | `production` | Laravel-Umgebung |
-| `APP_KEY` | — | Wird beim ersten Start automatisch generiert und in `/data` persistiert |
+| `APP_KEY` | — | Leer lassen: wird beim ersten Start automatisch generiert und in `/data/app.key` persistiert. Ein hier gesetzter Wert überschreibt das und hat immer Vorrang |
+| `LOG_STACK` | `single,stderr` | `stderr` sorgt dafür, dass Laravel-Fehler zusätzlich in `docker compose logs` erscheinen, nicht nur in `storage/logs/laravel.log` im Container |
 | `APP_DEBUG` | `false` | Nie in Produktion aktivieren |
 | `APP_URL` | `http://localhost:8090` | Basis-URL, u. a. für Links in Benachrichtigungen |
 | `APP_LOCALE` | `de` | Oberflächensprache: `de` oder `en` |
