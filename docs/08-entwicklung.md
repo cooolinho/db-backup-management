@@ -85,3 +85,28 @@ flowchart TD
 4. `DumpValidator` um ein Erkennungsmuster für die neue Engine erweitern, falls sinnvoll.
 5. Ein neues Dataset in den Integrationstests (`tests/Integration/Backup/`) sowie einen
    entsprechenden Fixture-Service in `docker-compose.dev.yml` ergänzen.
+
+## Image und Releases
+
+`.github/workflows/docker-image.yml` baut das Produktions-Image (`Dockerfile` im Projekt-Wurzel-
+verzeichnis, nur `linux/amd64`) und veröffentlicht es auf der GitHub Container Registry unter
+`ghcr.io/cooolinho/db-backup-management`:
+
+| Auslöser | Tags |
+|---|---|
+| Push auf `main` | `latest`, `sha-<kurz>` |
+| Git-Tag `v1.2.3` | `1.2.3`, `1.2`, `1`, `sha-<kurz>` |
+| Pull Request auf `main` | nur Build zur Prüfung, kein Push |
+
+Ein Release erfolgt über einen Git-Tag:
+
+```bash
+git tag v1.2.3
+git push origin v1.2.3
+```
+
+**Sichtbarkeit des Pakets:** GitHub legt ein neu veröffentlichtes Package auf der Container
+Registry standardmäßig **privat** an, auch wenn das Repository selbst öffentlich ist. Damit
+`docker pull`/`docker run` auf einem Zielserver ohne vorheriges `docker login ghcr.io`
+funktioniert, muss die Sichtbarkeit einmalig auf **Public** gestellt werden: auf GitHub unter
+*Packages* → `db-backup-management` → *Package settings* → *Change visibility*.

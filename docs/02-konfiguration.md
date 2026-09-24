@@ -78,8 +78,20 @@ Details und Beispiele in [03-backups.md](03-backups.md#s3-speicher).
 
 ## Docker (nur `docker-compose.yml`, nicht von der Anwendung selbst gelesen)
 
-| Variable | Standard | Wirkung |
-|---|---|---|
-| `BACKUP_DOCKER_NETWORK` | — | Name des externen Netzwerks des Zielprojekts (siehe [01-installation.md](01-installation.md)) |
-| `BACKUP_UI_PORT` | `8090` | Host-Port für die Oberfläche |
-| `BACKUP_HOST_PATH` | `./backups` | Host-Verzeichnis für `/backups` |
+Bei `docker run` (siehe [01-installation.md](01-installation.md#variante-a-docker-run-mit-dem-fertigen-image-empfohlen))
+gibt es diese Variablen nicht — die gleiche Information wird direkt als Kommandozeilen-Option
+übergeben.
+
+| Variable | Standard | Wirkung | Entspricht bei `docker run` |
+|---|---|---|---|
+| `BACKUP_DOCKER_NETWORK` | — | Name des externen Netzwerks des Zielprojekts (siehe [01-installation.md](01-installation.md)) | `--network <name>` |
+| `BACKUP_UI_PORT` | `8090` | Host-Port für die Oberfläche | `-p <port>:8080` |
+| `BACKUP_HOST_PATH` | `./backups` | Host-Verzeichnis für `/backups` | `-v <pfad>:/backups` |
+
+## `.env` mit `docker run --env-file`
+
+`docker run --env-file .env` liest die Datei zeilenweise und wörtlich: anders als `docker compose`
+werden `${VARIABLE}`-Referenzen **nicht** aufgelöst und Kommentare am Ende einer Wert-Zeile
+**nicht** entfernt. Die mitgelieferte `.env.example` ist bereits entsprechend vorbereitet
+(keine `${...}`-Referenzen, keine End-of-Line-Kommentare bei Werten). Wird die Datei um eigene
+Zeilen ergänzt, gilt dieselbe Regel dort ebenfalls.

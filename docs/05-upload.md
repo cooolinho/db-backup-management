@@ -40,7 +40,7 @@ Für Dumps, die zu groß für einen komfortablen Browser-Upload sind, lässt sic
 SCP/rsync auf den Server kopierte Datei direkt registrieren:
 
 ```bash
-docker compose exec db-backup php artisan backup:import /pfad/zur/datei.sql.gz
+docker exec db-backup php artisan backup:import /pfad/zur/datei.sql.gz
 ```
 
 Die Validierung läuft dabei synchron; der Befehl gibt sofort zurück, ob der Dump angenommen wurde.

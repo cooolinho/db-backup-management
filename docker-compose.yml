@@ -1,13 +1,16 @@
 # Standalone deployment: adds this tool to an EXISTING project's Docker
 # network so it can reach a database that has no port published to the
-# host. See docs/installation.md for how to point it at your project.
+# host. See docs/01-installation.md for how to point it at your project.
 #
 # Usage:
 #   cp .env.example .env    # then fill in DB_* / BACKUP_* / BACKUP_ADMIN_*
+#   docker compose up -d    # pulls the pre-built ghcr.io image
+# or, to build locally from source instead of pulling:
 #   docker compose up -d --build
 
 services:
   db-backup:
+    image: ghcr.io/cooolinho/db-backup-management:latest
     build: .
     container_name: ${COMPOSE_PROJECT_NAME:-db-backup}
     restart: unless-stopped

@@ -54,7 +54,7 @@ datenverändernden Operationen).
 Für automatisierte Rollbacks, z. B. direkt aus einem Deploy-Skript:
 
 ```bash
-docker compose exec db-backup php artisan backup:restore <backup-id> --wait --force
+docker exec db-backup php artisan backup:restore <backup-id> --wait --force
 ```
 
 `--force` überspringt die interaktive Namensbestätigung, `--wait` lässt den Befehl bis zum Abschluss
