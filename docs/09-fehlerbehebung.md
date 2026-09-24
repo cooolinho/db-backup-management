@@ -2,30 +2,32 @@
 
 ## HTTP 500 / „Cannot modify header information — headers already sent" im Log
 
-Diese Meldung im `docker compose logs`-Output ist nur ein Folgefehler: Laravel hat schon eine
+Diese Meldung im `docker logs`-Output ist nur ein Folgefehler: Laravel hat schon eine
 500-Antwort verschickt, versucht danach beim Aufräumen (`terminate`) aber noch einmal, den ursprünglich
 aufgetretenen Fehler zu rendern — das scheitert, weil die Antwort bereits gesendet ist, und genau diese
 Kaskade landet im Log. Der eigentliche Fehler steht stattdessen nur im Laravel-Log im Container:
 
 ```bash
-docker compose exec db-backup tail -n 40 storage/logs/laravel.log
+docker exec db-backup tail -n 40 storage/logs/laravel.log
 ```
 
-Mit `LOG_STACK=single,stderr` (Standard seit `.env.example`, siehe
+Mit `LOG_STACK=single,stderr` (Standard seit `laravel/.env.example`, siehe
 [02-konfiguration.md](02-konfiguration.md)) taucht dieser eigentliche Fehler künftig auch direkt in
-`docker compose logs` auf.
+`docker logs` auf.
 
 Häufigste Ursache: fehlender `APP_KEY` (`MissingAppKeyException`/„No application encryption key has
 been specified."). Der Key wird beim ersten Start automatisch erzeugt und nach `/data/app.key`
 persistiert — tritt der Fehler trotzdem auf, prüfen:
 
 ```bash
-grep '^APP_KEY' .env                       # sollte leer sein, nicht fehlen
-docker compose exec db-backup cat /data/app.key
+grep '^APP_KEY' laravel/.env               # bzw. die per --env-file übergebene Datei; sollte leer sein, nicht fehlen
+docker exec db-backup cat /data/app.key
 ```
 
-Ist `/data/app.key` leer oder fehlt, den Container einmal neu erzeugen (`docker compose up -d`) — das
-Entrypoint-Skript generiert den Key dann neu.
+Ist `/data/app.key` leer oder fehlt, den Container einmal neu erzeugen (`docker compose up -d` bzw.
+Container per `docker run ...` erneut starten, siehe
+[01-installation.md](01-installation.md#3-container-starten)) — das Entrypoint-Skript generiert den
+Key dann neu.
 
 ## „Access denied for user 'root'@'...'"
 
@@ -36,7 +38,7 @@ Anlegen eines netzwerkweit erreichbaren Root-Benutzers.
 
 ## „network ... not found" beim Start
 
-`BACKUP_DOCKER_NETWORK` in der `.env` zeigt auf ein nicht existierendes Netzwerk. Verfügbare
+`BACKUP_DOCKER_NETWORK` in der Root-`.env` zeigt auf ein nicht existierendes Netzwerk. Verfügbare
 Netzwerke prüfen:
 
 ```bash
@@ -59,8 +61,18 @@ sudo chown -R 33:33 ./backups
 
 Die Datei überschreitet eines der konfigurierten Größenlimits. `BACKUP_UPLOAD_MAX` erhöhen und
 zusätzlich die zugehörigen PHP-/Nginx-Grenzwerte (`PHP_UPLOAD_MAX_FILE_SIZE`,
-`PHP_POST_MAX_SIZE`, `NGINX_CLIENT_MAX_BODY_SIZE`) im Dockerfile anpassen — siehe
+`PHP_POST_MAX_SIZE`, `NGINX_CLIENT_MAX_BODY_SIZE`) im docker/Dockerfile anpassen — siehe
 [02-konfiguration.md](02-konfiguration.md#oberfläche-und-uploads).
+
+## Ein `.env`-Wert wirkt nicht, oder der Absendername zeigt `${APP_NAME}` an
+
+Betrifft nur den Betrieb per `docker run --env-file .env` (nicht `docker compose`): Docker liest
+die Datei zeilenweise und wörtlich, löst `${VARIABLE}`-Referenzen also **nicht** auf und entfernt
+auch keine Kommentare am Ende einer Wert-Zeile. Eine selbst ergänzte Zeile wie
+`MAIL_FROM_NAME="${APP_NAME}"` landet dann buchstäblich als `${APP_NAME}` im Absendernamen statt
+mit dem Wert von `APP_NAME` aufgelöst zu werden. Abhilfe: jeden Wert direkt und ohne
+`${...}`-Referenz eintragen — siehe die Hinweise dazu am Anfang der `laravel/.env.example` und in
+[02-konfiguration.md](02-konfiguration.md#env-mit-docker-run---env-file).
 
 ## PostgreSQL: „database is being accessed by other users"
 

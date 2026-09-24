@@ -1,18 +1,24 @@
 # Standalone deployment: adds this tool to an EXISTING project's Docker
 # network so it can reach a database that has no port published to the
-# host. See docs/installation.md for how to point it at your project.
+# host. See docs/01-installation.md for how to point it at your project.
 #
 # Usage:
-#   cp .env.example .env    # then fill in DB_* / BACKUP_* / BACKUP_ADMIN_*
+#   cp .env.example .env                        # BACKUP_DOCKER_NETWORK / _UI_PORT / _HOST_PATH / _IMAGE
+#   cp laravel/.env.example laravel/.env         # DB_* / BACKUP_* / BACKUP_ADMIN_* / MAIL_*
+#   docker compose up -d    # pulls the pre-built ghcr.io image (DB_BACKUP_IMAGE)
+# or, to build locally from source instead of pulling:
 #   docker compose up -d --build
 
 services:
   db-backup:
-    build: .
+    image: ${DB_BACKUP_IMAGE:-ghcr.io/cooolinho/db-backup-management:latest}
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
     container_name: ${COMPOSE_PROJECT_NAME:-db-backup}
     restart: unless-stopped
     env_file:
-      - .env
+      - laravel/.env
     ports:
       - "${BACKUP_UI_PORT:-8090}:8080"
     volumes:

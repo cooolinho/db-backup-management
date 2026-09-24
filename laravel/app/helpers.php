@@ -83,7 +83,7 @@ if (! function_exists('backup_upload_max_kb')) {
 
 if (! function_exists('persisted_app_key')) {
     /**
-     * Reads the APP_KEY persisted by docker/entrypoint.d/20-app-key.sh to
+     * Reads the APP_KEY persisted by ../docker/entrypoint.d/20-app-key.sh (repo root) to
      * /data/app.key, for use as a fallback when APP_KEY itself is unset.
      *
      * Needed because that script cannot write the key back into .env: an

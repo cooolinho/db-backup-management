@@ -32,7 +32,7 @@ Owner auf dem Zielserver nicht existiert.
 
 `BACKUP_UPLOAD_MAX` (Standard `2G`, siehe [02-konfiguration.md](02-konfiguration.md)) begrenzt die
 Upload-Größe über die Oberfläche. Ein größerer Wert erfordert zusätzlich angepasste PHP- und
-Nginx-Limits im Dockerfile.
+Nginx-Limits im docker/Dockerfile.
 
 ## Sehr große Dateien: `backup:import`
 
@@ -40,7 +40,7 @@ Für Dumps, die zu groß für einen komfortablen Browser-Upload sind, lässt sic
 SCP/rsync auf den Server kopierte Datei direkt registrieren:
 
 ```bash
-docker compose exec db-backup php artisan backup:import /pfad/zur/datei.sql.gz
+docker exec db-backup php artisan backup:import /pfad/zur/datei.sql.gz
 ```
 
 Die Validierung läuft dabei synchron; der Befehl gibt sofort zurück, ob der Dump angenommen wurde.

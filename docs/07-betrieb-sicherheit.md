@@ -2,15 +2,32 @@
 
 ## Update des Images
 
+**Bei `docker run` (Variante A der Installation):**
+
 ```bash
-docker compose pull   # bei einem vorgebauten Image aus einer Registry
+docker pull ghcr.io/cooolinho/db-backup-management:latest
+docker rm -f db-backup
+# derselbe `docker run ...`-Befehl wie bei der Installation, siehe
+# 01-installation.md#variante-a-docker-run-mit-dem-fertigen-image-empfohlen
+```
+
+**Bei `docker compose`:**
+
+```bash
+docker compose pull   # bei dem vorgebauten Image aus ghcr.io (Standard)
+docker compose up -d
 # oder, bei lokalem Build aus dem Quellcode:
 git pull
 docker compose up -d --build
 ```
 
-Die eigene SQLite-Datenbank (`/data`) und die Backup-Dateien (`/backups`) liegen in persistenten
-Volumes bzw. Bind-Mounts und überstehen ein Update unverändert.
+In beiden Fällen liegen die eigene SQLite-Datenbank (`/data`) und die Backup-Dateien (`/backups`)
+in persistenten Volumes bzw. Bind-Mounts und überstehen ein Update unverändert — sie sind an den
+Volume-/Mount-Namen gebunden, nicht am Container selbst.
+
+Welches Image `docker compose pull`/`up` zieht, steuert `DB_BACKUP_IMAGE` in der Root-`.env`
+(Standard: `ghcr.io/cooolinho/db-backup-management:latest`). Auf eine konkrete Version pinnen z. B.
+mit `DB_BACKUP_IMAGE=ghcr.io/cooolinho/db-backup-management:1.2.3`.
 
 ## Sicherung von `/data`
 
@@ -24,16 +41,16 @@ eigene Server-Backup-Strategie mit aufzunehmen.
 ## Logs
 
 ```bash
-docker compose logs -f db-backup
+docker logs -f db-backup
 ```
 
 Enthält nginx-, PHP-FPM-, Scheduler- und Queue-Worker-Ausgaben aus einem Container (s6-Overlay
 startet alle Dienste in einem gemeinsamen Prozessbaum). Dank `LOG_STACK=single,stderr` (Standard,
-siehe `.env.example`) landen darin auch Laravel-Exceptions aus der Weboberfläche. Für das
+siehe `laravel/.env.example`) landen darin auch Laravel-Exceptions aus der Weboberfläche. Für das
 vollständige, ungefilterte Laravel-Log direkt im Container:
 
 ```bash
-docker compose exec db-backup tail -n 100 storage/logs/laravel.log
+docker exec db-backup tail -n 100 storage/logs/laravel.log
 ```
 
 Die Datei liegt im beschreibbaren Layer des Containers, nicht in einem Volume, und geht bei jedem
@@ -42,7 +59,7 @@ Neu-Erzeugen des Containers verloren.
 ## Weitere Benutzer und Passwort-Reset
 
 ```bash
-docker compose exec db-backup php artisan make:filament-user
+docker exec db-backup php artisan make:filament-user
 ```
 
 Es gibt bewusst keine Benutzerverwaltung in der Oberfläche selbst — das hält die Angriffsfläche
@@ -50,7 +67,7 @@ klein. Ein Passwort-Reset läuft über denselben Befehl (E-Mail-Adresse eines be
 angeben, dann Passwort neu setzen) oder direkt per Tinker:
 
 ```bash
-docker compose exec db-backup php artisan tinker
+docker exec db-backup php artisan tinker
 >>> \App\Models\User::where('email', 'admin@example.com')->first()->update(['password' => bcrypt('neues-passwort')]);
 ```
 
@@ -62,9 +79,9 @@ davorgeschaltet werden. Beispiel mit Traefik (Labels statt eines eigenen Ports):
 ```yaml
 services:
   db-backup:
-    build: .
+    image: ghcr.io/cooolinho/db-backup-management:latest
     restart: unless-stopped
-    env_file: [.env]
+    env_file: [laravel/.env]
     volumes:
       - db-backup-data:/data
       - ${BACKUP_HOST_PATH:-./backups}:/backups
@@ -98,7 +115,8 @@ Danach ist die Oberfläche lokal unter `http://localhost:8090` erreichbar, ohne 
 Der Backup-Manager verbindet sich für Dump, Import und den Tausch beim Restore als
 Root/Superuser der Zieldatenbank — ohne diese Rechte sind weder das Anlegen temporärer
 Datenbanken noch der atomare Tausch beim Restore möglich. Diese Zugangsdaten liegen ausschließlich
-in der `.env` des Backup-Manager-Containers, nicht in der Oberfläche einsehbar oder änderbar.
+in der App-`.env` des Backup-Manager-Containers (bei `docker run` die per `--env-file` übergebene
+Datei, sonst `laravel/.env`), nicht in der Oberfläche einsehbar oder änderbar.
 
 Empfehlungen:
 
@@ -116,4 +134,4 @@ Empfehlungen:
   Bei PostgreSQL ist der Standard-Superuser (`postgres`) i. d. R. bereits netzwerkweit erreichbar,
   sofern `pg_hba.conf` Verbindungen aus dem Docker-Netzwerk erlaubt (bei offiziellen
   Docker-Images meist der Fall).
-- `.env` entsprechend restriktiv auf dem Host sichern (Dateirechte, kein Commit ins Git).
+- Die `.env`-Dateien entsprechend restriktiv auf dem Host sichern (Dateirechte, kein Commit ins Git).

@@ -76,7 +76,7 @@ wieder lokal verfügbar sein (z. B. durch Herunterladen und erneutes Hochladen, 
 einen aktuellen Stand sichern soll:
 
 ```bash
-docker compose exec db-backup php artisan backup:run --wait
+docker exec db-backup php artisan backup:run --wait
 ```
 
 `--wait` lässt den Befehl synchron laufen und mit einem Exit-Code ungleich null enden, falls das
@@ -85,7 +85,7 @@ Backup fehlschlägt — geeignet, um eine CI/CD-Pipeline daran zu koppeln:
 ```bash
 #!/bin/sh
 set -e
-docker compose exec -T db-backup php artisan backup:run --wait
+docker exec db-backup php artisan backup:run --wait
 docker compose pull
 docker compose up -d
 ```
