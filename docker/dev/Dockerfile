@@ -1,10 +1,10 @@
 # syntax=docker/dockerfile:1
 #
 # Development/CI image: PHP CLI + Composer + the same MariaDB/PostgreSQL
-# client tooling as the production image (docker/../Dockerfile), so
+# client tooling as the production image (docker/Dockerfile), so
 # `composer test` and `composer test:integration` run against real
 # database fixtures without installing PHP locally. Not used in production
-# - the production image is the nginx/php-fpm one at the repository root.
+# - the production image is the nginx/php-fpm one at docker/Dockerfile.
 FROM php:8.4-cli-trixie
 
 RUN apt-get update && apt-get install -y --no-install-recommends \

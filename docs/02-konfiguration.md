@@ -1,11 +1,13 @@
 # Konfiguration
 
-Alle Variablen werden in `.env` gesetzt (siehe `.env.example`). Ein Teil der Backup-Einstellungen
-(Zeitplan, Format, Aufbewahrung, S3) wird beim ersten Start einmalig als Vorgabe in die Datenbank
-übernommen und ist danach **nur noch über die Oberfläche** ("Backup-Einstellungen") änderbar — ein
-späteres Ändern der `.env` hat dann keinen Effekt mehr, außer die Einstellungen werden in der
-Oberfläche zurückgesetzt. Diese Variablen sind unten mit „Vorgabewert (UI überschreibbar)"
-gekennzeichnet.
+Alle Variablen auf dieser Seite (außer dem letzten Abschnitt „Docker") werden in der App-`.env`
+gesetzt — bei `docker run` die per `--env-file` übergebene Datei, bei `docker compose` bzw. einem
+Repository-Checkout `laravel/.env` (siehe `laravel/.env.example`). Ein Teil der
+Backup-Einstellungen (Zeitplan, Format, Aufbewahrung, S3) wird beim ersten Start einmalig als
+Vorgabe in die Datenbank übernommen und ist danach **nur noch über die Oberfläche**
+("Backup-Einstellungen") änderbar — ein späteres Ändern der `.env` hat dann keinen Effekt mehr,
+außer die Einstellungen werden in der Oberfläche zurückgesetzt. Diese Variablen sind unten mit
+„Vorgabewert (UI überschreibbar)" gekennzeichnet.
 
 ## Anwendung
 
@@ -65,7 +67,7 @@ Details und Beispiele in [03-backups.md](03-backups.md#s3-speicher).
 | Variable | Standard | Wirkung |
 |---|---|---|
 | `BACKUP_ADMIN_NAME` / `BACKUP_ADMIN_EMAIL` / `BACKUP_ADMIN_PASSWORD` | — | Nur beim allerersten Start wirksam (`app:ensure-admin`), solange noch kein Benutzer existiert |
-| `BACKUP_UPLOAD_MAX` | `2G` | Maximale Größe für hochgeladene Dumps. Ein Wert über `2G` braucht zusätzlich angepasste `PHP_UPLOAD_MAX_FILE_SIZE`, `PHP_POST_MAX_SIZE` und `NGINX_CLIENT_MAX_BODY_SIZE` (siehe Dockerfile) |
+| `BACKUP_UPLOAD_MAX` | `2G` | Maximale Größe für hochgeladene Dumps. Ein Wert über `2G` braucht zusätzlich angepasste `PHP_UPLOAD_MAX_FILE_SIZE`, `PHP_POST_MAX_SIZE` und `NGINX_CLIENT_MAX_BODY_SIZE` (siehe docker/Dockerfile) |
 
 ## Benachrichtigungen (nur bei Fehlern, siehe [06-benachrichtigungen-audit.md](06-benachrichtigungen-audit.md))
 
@@ -76,9 +78,11 @@ Details und Beispiele in [03-backups.md](03-backups.md#s3-speicher).
 | `BACKUP_NOTIFY_WEBHOOK_TYPE` | `slack` | `slack`, `discord` oder `generic` — bestimmt die Nutzlast |
 | `MAIL_MAILER` u. a. | `log` | Reguläre Laravel-Mail-Konfiguration |
 
-## Docker (nur `docker-compose.yml`, nicht von der Anwendung selbst gelesen)
+## Docker (nur die Root-`.env`/`docker-compose.yml`, nicht von der Anwendung selbst gelesen)
 
-Bei `docker run` (siehe [01-installation.md](01-installation.md#variante-a-docker-run-mit-dem-fertigen-image-empfohlen))
+Diese drei Variablen stehen in der `.env` im Repository-**Root** (nicht in `laravel/.env`) und
+werden nur von `docker-compose.yml` gelesen. Bei `docker run` (siehe
+[01-installation.md](01-installation.md#variante-a-docker-run-mit-dem-fertigen-image-empfohlen))
 gibt es diese Variablen nicht — die gleiche Information wird direkt als Kommandozeilen-Option
 übergeben.
 
@@ -92,6 +96,6 @@ gibt es diese Variablen nicht — die gleiche Information wird direkt als Komman
 
 `docker run --env-file .env` liest die Datei zeilenweise und wörtlich: anders als `docker compose`
 werden `${VARIABLE}`-Referenzen **nicht** aufgelöst und Kommentare am Ende einer Wert-Zeile
-**nicht** entfernt. Die mitgelieferte `.env.example` ist bereits entsprechend vorbereitet
+**nicht** entfernt. Die mitgelieferte `laravel/.env.example` ist bereits entsprechend vorbereitet
 (keine `${...}`-Referenzen, keine End-of-Line-Kommentare bei Werten). Wird die Datei um eigene
 Zeilen ergänzt, gilt dieselbe Regel dort ebenfalls.

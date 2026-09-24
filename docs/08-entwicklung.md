@@ -3,9 +3,10 @@
 ## Dev-Setup ohne lokales PHP
 
 `docker/dev/Dockerfile` liefert PHP 8.4 CLI, Composer und dieselben Datenbank-Clients
-(`mariadb-client`, `postgresql-client-18`) wie das Produktions-Image. In `docker-compose.dev.yml`
-steht dafür ein Service `app` (Profil `tools`) zur Verfügung, im selben Docker-Netzwerk wie die
-Fixtures:
+(`mariadb-client`, `postgresql-client-18`) wie das Produktions-Image (`docker/Dockerfile`). In
+`docker-compose.dev.yml` steht dafür ein Service `app` (Profil `tools`) zur Verfügung, im selben
+Docker-Netzwerk wie die Fixtures; er mountet `laravel/` nach `/var/www/html`. Alle Befehle unten
+laufen vom Repository-**Root** aus (dort liegt `docker-compose.dev.yml`):
 
 ```bash
 docker compose -f docker-compose.dev.yml up -d          # Fixtures starten (MySQL, MariaDB, Postgres, MinIO, Mailpit)
@@ -61,36 +62,40 @@ flowchart TD
     Job --> Storage[(Lokaler Speicher / S3)]
 ```
 
-- **`app/Backup/Drivers/`** — `DatabaseDriver`-Interface mit einer Implementierung je Engine
+- **`laravel/app/Backup/Drivers/`** — `DatabaseDriver`-Interface mit einer Implementierung je Engine
   (`MySqlDriver`, `MariaDbDriver`, `PostgresDriver`), verantwortlich für `dump`/`import`/
   `createDatabase`/`dropDatabase`/`swap`/... `DriverFactory` wählt anhand `DB_CONNECTION` die
   passende Implementierung.
-- **`app/Backup/`** — Orchestrierung: `BackupService`, `RestoreService`, `RetentionService`,
+- **`laravel/app/Backup/`** — Orchestrierung: `BackupService`, `RestoreService`, `RetentionService`,
   `ArchiveNamer` (Namensschema und -validierung für Archive), `DumpValidator` (Sicherheitsprüfung
   hochgeladener Dumps), `OperationLock` (verhindert parallele datenverändernde Operationen).
-- **`app/Jobs/`** — je ein Queue-Job pro Operation (`CreateBackupJob`, `RestoreBackupJob`,
+- **`laravel/app/Jobs/`** — je ein Queue-Job pro Operation (`CreateBackupJob`, `RestoreBackupJob`,
   `SwapArchiveJob`, `DropArchiveJob`, `ValidateUploadedDumpJob`), jeweils mit `failed()`-Hook für
   Benachrichtigungen.
-- **`app/Filament/`** — Resources, Pages, Actions und Widgets der Oberfläche.
-- **`app/Support/`** — `Audit` (Audit-Log-Schreibzugriff), `FailureNotifier`.
+- **`laravel/app/Filament/`** — Resources, Pages, Actions und Widgets der Oberfläche.
+- **`laravel/app/Support/`** — `Audit` (Audit-Log-Schreibzugriff), `FailureNotifier`.
 
 ## Eine weitere Datenbank-Engine ergänzen
 
-1. Neue Klasse in `app/Backup/Drivers/`, die `DatabaseDriver` implementiert (an
+1. Neue Klasse in `laravel/app/Backup/Drivers/`, die `DatabaseDriver` implementiert (an
    `AbstractMySqlFamilyDriver`/`PostgresDriver` orientieren, je nachdem welcher Familie die neue
    Engine näher ist).
 2. In `DriverFactory::make()` eintragen.
-3. In `app/helpers.php` (`target_database_connection()`) die passende Laravel-Connection-
+3. In `laravel/app/helpers.php` (`target_database_connection()`) die passende Laravel-Connection-
    Konfiguration ergänzen.
 4. `DumpValidator` um ein Erkennungsmuster für die neue Engine erweitern, falls sinnvoll.
-5. Ein neues Dataset in den Integrationstests (`tests/Integration/Backup/`) sowie einen
+5. Ein neues Dataset in den Integrationstests (`laravel/tests/Integration/Backup/`) sowie einen
    entsprechenden Fixture-Service in `docker-compose.dev.yml` ergänzen.
 
 ## Image und Releases
 
-`.github/workflows/docker-image.yml` baut das Produktions-Image (`Dockerfile` im Projekt-Wurzel-
-verzeichnis, nur `linux/amd64`) und veröffentlicht es auf der GitHub Container Registry unter
-`ghcr.io/cooolinho/db-backup-management`:
+`.github/workflows/docker-image.yml` baut das Produktions-Image (`docker/Dockerfile`, Build-Kontext
+= Repository-Root, nur `linux/amd64`) und veröffentlicht es auf der GitHub Container Registry unter
+`ghcr.io/cooolinho/db-backup-management`. Lokal entspricht das:
+
+```bash
+docker build -f docker/Dockerfile -t db-backup:local .
+```
 
 | Auslöser | Tags |
 |---|---|

@@ -32,7 +32,7 @@ Owner auf dem Zielserver nicht existiert.
 
 `BACKUP_UPLOAD_MAX` (Standard `2G`, siehe [02-konfiguration.md](02-konfiguration.md)) begrenzt die
 Upload-Größe über die Oberfläche. Ein größerer Wert erfordert zusätzlich angepasste PHP- und
-Nginx-Limits im Dockerfile.
+Nginx-Limits im docker/Dockerfile.
 
 ## Sehr große Dateien: `backup:import`
 

@@ -1,4 +1,8 @@
 # syntax=docker/dockerfile:1
+#
+# Build from the repository root (the Laravel app lives in laravel/,
+# but docker/s6 and docker/entrypoint.d below are copied from the root):
+#   docker build -f docker/Dockerfile .
 FROM serversideup/php:8.4-fpm-nginx
 
 # --------------------------------------------------------------------------
@@ -39,7 +43,7 @@ COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 # --------------------------------------------------------------------------
 WORKDIR /var/www/html
 
-COPY --chown=www-data:www-data . .
+COPY --chown=www-data:www-data laravel/ .
 
 RUN composer install --no-dev --no-interaction --optimize-autoloader \
     && composer clear-cache

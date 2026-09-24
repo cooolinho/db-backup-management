@@ -31,22 +31,24 @@ zeigt, in welchem Netzwerk der Datenbank-Container tatsächlich hängt.
 
 ## 2. `.env` anlegen
 
-Auf dem Zielserver reicht ein leeres Verzeichnis, ohne Repository-Checkout:
+Auf dem Zielserver reicht ein leeres Verzeichnis, ohne Repository-Checkout. Für `docker run`
+(Variante A) wird nur die App-Konfiguration gebraucht — die Variablen aus `laravel/.env.example`
+im Repository:
 
 ```bash
 mkdir -p /opt/db-backup/backups && cd /opt/db-backup
-curl -fsSL https://raw.githubusercontent.com/cooolinho/db-backup-management/main/.env.example -o .env
+curl -fsSL https://raw.githubusercontent.com/cooolinho/db-backup-management/main/laravel/.env.example -o .env
 chmod 600 .env
 ```
 
 Für eine konkrete, gepinnte Version statt der jeweils aktuellen `main`-Vorlage `main` im Pfad durch
-den entsprechenden Git-Tag ersetzen, z. B. `.../v1.2.3/.env.example`.
+den entsprechenden Git-Tag ersetzen, z. B. `.../v1.2.3/laravel/.env.example`.
 
 **Wichtig beim Bearbeiten der `.env`:** Wird der Container später per `docker run --env-file`
 gestartet (Variante A unten), liest Docker die Datei zeilenweise und wörtlich — anders als
 `docker compose` werden `${VARIABLE}`-Referenzen **nicht** aufgelöst und Kommentare am Ende einer
-Zeile mit Wert **nicht** entfernt. Die mitgelieferte `.env.example` ist bereits entsprechend
-vorbereitet; das gilt nur, falls eigene Zeilen ergänzt werden.
+Zeile mit Wert **nicht** entfernt. Die mitgelieferte `laravel/.env.example` ist bereits
+entsprechend vorbereitet; das gilt nur, falls eigene Zeilen ergänzt werden.
 
 **Datenbank-Block 1:1 aus dem Zielprojekt übernehmen:** `DB_CONNECTION`, `DB_HOST` (der
 Service-Name der Datenbank im Compose-File des Zielprojekts, z. B. `mysql` oder `db`), `DB_PORT`,
@@ -61,7 +63,7 @@ Containers verbunden werden darf, siehe die Hinweise in
 [07-betrieb-sicherheit.md](07-betrieb-sicherheit.md#root-zugangsdaten).
 
 Alle weiteren `.env`-Variablen sind in [02-konfiguration.md](02-konfiguration.md) beschrieben;
-die Standardwerte aus `.env.example` funktionieren für einen ersten Test.
+die Standardwerte aus `laravel/.env.example` funktionieren für einen ersten Test.
 
 ## 3. Container starten
 
@@ -107,7 +109,8 @@ Checkout des Repositories. Das mitgelieferte `docker-compose.yml` zieht standard
 ```bash
 git clone https://github.com/cooolinho/db-backup-management.git
 cd db-backup-management
-cp .env.example .env    # danach wie in Schritt 2 ausfüllen
+cp .env.example .env                    # BACKUP_DOCKER_NETWORK / _UI_PORT / _HOST_PATH
+cp laravel/.env.example laravel/.env    # App-Konfiguration, wie in Schritt 2 ausfüllen
 docker compose up -d
 ```
 
@@ -122,7 +125,7 @@ services:
     image: ghcr.io/cooolinho/db-backup-management:latest
     container_name: db-backup
     restart: unless-stopped
-    env_file: [.env.backup]
+    env_file: [.env.backup] # Inhalt wie laravel/.env.example im Repository
     ports:
       - "8090:8080"
     volumes:

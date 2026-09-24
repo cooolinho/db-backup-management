@@ -42,7 +42,7 @@ checkout — just a `.env` and a `docker run`:
 
 ```bash
 mkdir -p /opt/db-backup/backups && cd /opt/db-backup
-curl -fsSL https://raw.githubusercontent.com/cooolinho/db-backup-management/main/.env.example -o .env
+curl -fsSL https://raw.githubusercontent.com/cooolinho/db-backup-management/main/laravel/.env.example -o .env
 # Fill in DB_* (copied from the target project)
 
 docker run -d --name db-backup --restart unless-stopped \
@@ -57,8 +57,9 @@ docker run -d --name db-backup --restart unless-stopped \
 The UI is then reachable at `http://localhost:8090`. A first admin user is created automatically
 from `BACKUP_ADMIN_*` in `.env`.
 
-Prefer `docker compose` instead? `cp .env.example .env && docker compose up -d` pulls the same
-image using the bundled `docker-compose.yml`.
+Prefer `docker compose` instead? `cp .env.example .env && cp laravel/.env.example laravel/.env &&
+docker compose up -d` (from a repository checkout) pulls the same image using the bundled
+`docker-compose.yml`.
 
 Full walkthrough, including how to find the target project's Docker network and how to hand over
 root database credentials: [docs/01-installation.md](docs/01-installation.md).
@@ -89,18 +90,24 @@ log — is covered in [📚 Documentation](#-documentation).
 ## 📁 Project Structure
 
 ```
-app/
-  Backup/          Drivers (MySQL/MariaDB/PostgreSQL), BackupService, RestoreService,
-                    RetentionService, ArchiveNamer, DumpValidator, OperationLock
-  Console/Commands/ backup:run, backup:restore, backup:import, backup:tick, app:ensure-admin
-  Filament/         Resources, Pages, Actions and Widgets for the web UI
-  Jobs/             Queue jobs for backup, restore, swap and archive deletion
-  Support/          Audit log writer, FailureNotifier
+laravel/            The Laravel/Filament application
+  app/
+    Backup/          Drivers (MySQL/MariaDB/PostgreSQL), BackupService, RestoreService,
+                      RetentionService, ArchiveNamer, DumpValidator, OperationLock
+    Console/Commands/ backup:run, backup:restore, backup:import, backup:tick, app:ensure-admin
+    Filament/         Resources, Pages, Actions and Widgets for the web UI
+    Jobs/             Queue jobs for backup, restore, swap and archive deletion
+    Support/          Audit log writer, FailureNotifier
+  .env.example       App variables (DB_*, BACKUP_*, MAIL_*, ...)
 docker/
-  dev/              PHP CLI + database clients image for running the test suite
+  Dockerfile          Production image (build context = repository root)
+  entrypoint.d/       One-shot setup on container start (APP_KEY, storage, admin user)
+  s6/                 Scheduler + queue-worker services
+  dev/                PHP CLI + database clients image for running the test suite
 .github/
   workflows/        Builds the image and publishes it to ghcr.io (see docs/08)
 docs/               German-language operations handbook (see below)
+.env.example            Compose-only variables (BACKUP_DOCKER_NETWORK/_UI_PORT/_HOST_PATH)
 docker-compose.yml      Standalone deployment (joins an external Docker network)
 docker-compose.dev.yml  Local database fixtures + dev/test tooling
 ```

@@ -1,5 +1,6 @@
-# Builds the production image (Dockerfile at the repository root) and
-# publishes it to the GitHub Container Registry:
+# Builds the production image (docker/Dockerfile, context = repository
+# root; the Laravel app lives in laravel/) and publishes it to the
+# GitHub Container Registry:
 #
 #   ghcr.io/cooolinho/db-backup-management
 #
@@ -68,6 +69,7 @@ jobs:
         uses: docker/build-push-action@v7
         with:
           context: .
+          file: docker/Dockerfile
           platforms: linux/amd64
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}

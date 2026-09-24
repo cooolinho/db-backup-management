@@ -4,8 +4,8 @@
 #
 # Usage:
 #   docker compose -f docker-compose.dev.yml up -d
-# Then point DB_CONNECTION/DB_HOST/... (see .env.testing) at whichever
-# engine a given test run targets, and BACKUP_S3_ENDPOINT at MinIO.
+# Then point DB_CONNECTION/DB_HOST/... (see laravel/.env.testing) at
+# whichever engine a given test run targets, and BACKUP_S3_ENDPOINT at MinIO.
 
 services:
   mysql:
@@ -113,7 +113,7 @@ services:
     profiles: ["tools"]
     working_dir: /var/www/html
     volumes:
-      - .:/var/www/html
+      - ./laravel:/var/www/html
     networks:
       - target
 

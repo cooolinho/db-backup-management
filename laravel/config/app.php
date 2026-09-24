@@ -97,7 +97,7 @@ return [
 
     'cipher' => 'AES-256-CBC',
 
-    // Falls back to the key docker/entrypoint.d/20-app-key.sh persisted to
+    // Falls back to the key ../docker/entrypoint.d/20-app-key.sh (repo root) persisted to
     // /data/app.key when APP_KEY is unset. Needed because APP_KEY="" from
     // env_file (see .env.example) is an existing env var, which Laravel's
     // Dotenv repository never overwrites — writing the generated key back

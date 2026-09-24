@@ -19,7 +19,7 @@ use Throwable;
  * Debian ships no true Oracle MySQL client, and mariadb-dump/mariadb are
  * wire-compatible with MySQL 8.x for the plain dump/restore operations
  * this tool performs, so both drivers shell out to the same mariadb-client
- * binaries (see the Dockerfile). The two driver classes exist as separate,
+ * binaries (see docker/Dockerfile, repo root). The two driver classes exist as separate,
  * near-empty subclasses so genuinely engine-specific behaviour has
  * somewhere to go later without reshaping the DriverFactory contract.
  */
