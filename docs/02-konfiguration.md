@@ -80,17 +80,18 @@ Details und Beispiele in [03-backups.md](03-backups.md#s3-speicher).
 
 ## Docker (nur die Root-`.env`/`docker-compose.yml`, nicht von der Anwendung selbst gelesen)
 
-Diese drei Variablen stehen in der `.env` im Repository-**Root** (nicht in `laravel/.env`) und
+Diese Variablen stehen in der `.env` im Repository-**Root** (nicht in `laravel/.env`) und
 werden nur von `docker-compose.yml` gelesen. Bei `docker run` (siehe
 [01-installation.md](01-installation.md#variante-a-docker-run-mit-dem-fertigen-image-empfohlen))
-gibt es diese Variablen nicht — die gleiche Information wird direkt als Kommandozeilen-Option
-übergeben.
+gibt es diese Variablen nicht — die gleiche Information wird direkt als Kommandozeilen-Option bzw.
+als Image-Tag am Ende des Befehls übergeben.
 
 | Variable | Standard | Wirkung | Entspricht bei `docker run` |
 |---|---|---|---|
 | `BACKUP_DOCKER_NETWORK` | — | Name des externen Netzwerks des Zielprojekts (siehe [01-installation.md](01-installation.md)) | `--network <name>` |
 | `BACKUP_UI_PORT` | `8090` | Host-Port für die Oberfläche | `-p <port>:8080` |
 | `BACKUP_HOST_PATH` | `./backups` | Host-Verzeichnis für `/backups` | `-v <pfad>:/backups` |
+| `DB_BACKUP_IMAGE` | `ghcr.io/cooolinho/db-backup-management:latest` | Welches Image gezogen/gestartet wird; zum Pinnen einer Version überschreiben (z. B. `...:1.2.3`) | Tag am Ende des `docker run`-Befehls |
 
 ## `.env` mit `docker run --env-file`
 

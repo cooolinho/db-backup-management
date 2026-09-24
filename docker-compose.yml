@@ -3,15 +3,15 @@
 # host. See docs/01-installation.md for how to point it at your project.
 #
 # Usage:
-#   cp .env.example .env                        # BACKUP_DOCKER_NETWORK / _UI_PORT / _HOST_PATH
+#   cp .env.example .env                        # BACKUP_DOCKER_NETWORK / _UI_PORT / _HOST_PATH / _IMAGE
 #   cp laravel/.env.example laravel/.env         # DB_* / BACKUP_* / BACKUP_ADMIN_* / MAIL_*
-#   docker compose up -d    # pulls the pre-built ghcr.io image
+#   docker compose up -d    # pulls the pre-built ghcr.io image (DB_BACKUP_IMAGE)
 # or, to build locally from source instead of pulling:
 #   docker compose up -d --build
 
 services:
   db-backup:
-    image: ghcr.io/cooolinho/db-backup-management:latest
+    image: ${DB_BACKUP_IMAGE:-ghcr.io/cooolinho/db-backup-management:latest}
     build:
       context: .
       dockerfile: docker/Dockerfile

@@ -15,6 +15,7 @@ docker rm -f db-backup
 
 ```bash
 docker compose pull   # bei dem vorgebauten Image aus ghcr.io (Standard)
+docker compose up -d
 # oder, bei lokalem Build aus dem Quellcode:
 git pull
 docker compose up -d --build
@@ -23,6 +24,10 @@ docker compose up -d --build
 In beiden Fällen liegen die eigene SQLite-Datenbank (`/data`) und die Backup-Dateien (`/backups`)
 in persistenten Volumes bzw. Bind-Mounts und überstehen ein Update unverändert — sie sind an den
 Volume-/Mount-Namen gebunden, nicht am Container selbst.
+
+Welches Image `docker compose pull`/`up` zieht, steuert `DB_BACKUP_IMAGE` in der Root-`.env`
+(Standard: `ghcr.io/cooolinho/db-backup-management:latest`). Auf eine konkrete Version pinnen z. B.
+mit `DB_BACKUP_IMAGE=ghcr.io/cooolinho/db-backup-management:1.2.3`.
 
 ## Sicherung von `/data`
 
